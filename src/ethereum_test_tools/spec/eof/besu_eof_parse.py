@@ -22,8 +22,6 @@ class BesuEOFParse:
     binary: Path
     process: Optional[subprocess.Popen] = None
 
-
-
     def __new__(cls):
         """Make EOF binary a singleton."""
         if not hasattr(cls, "instance"):
@@ -69,6 +67,7 @@ class BesuEOFParse:
 
         self.process.stdin.write(input)
         return self.process.stdout.readline()
+
 
 # class EOFTest(BaseTest):
 #     """

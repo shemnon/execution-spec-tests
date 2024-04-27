@@ -275,6 +275,7 @@ str
 streetsidesoftware
 subcall
 subclasscheck
+subcontainer
 subdirectories
 subdirectory
 subgraph
@@ -550,6 +551,7 @@ create
 create2
 create3
 create4
+eofcreate
 call
 callcode
 return

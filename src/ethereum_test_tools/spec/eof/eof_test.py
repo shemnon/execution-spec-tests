@@ -49,13 +49,12 @@ class EOFParse:
         )
         return result.stdout
 
+
 class BesuEOFParse:
     """Besu evmtool code-validate binary."""
 
     binary: Path
     process: Optional[subprocess.Popen] = None
-
-
 
     def __new__(cls):
         """Make EOF binary a singleton."""
@@ -64,8 +63,8 @@ class BesuEOFParse:
         return cls.instance
 
     def __init__(
-            self,
-            binary: Optional[Path | str] = None,
+        self,
+        binary: Optional[Path | str] = None,
     ):
         if binary is None:
             which_path = which("evmtool")
@@ -106,7 +105,6 @@ class BesuEOFParse:
         self.process.stdin.writelines([bytes(input + "\n", "utf-8")])
         self.process.stdin.flush()
         return str(self.process.stdout.readline())
-
 
 
 class EOFTest(BaseTest):
