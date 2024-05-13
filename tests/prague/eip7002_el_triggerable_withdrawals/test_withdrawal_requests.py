@@ -4,7 +4,7 @@ abstract: Tests [EIP-7002: Execution layer triggerable withdrawals](https://eips
 
 """  # noqa: E501
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 from itertools import count
 from typing import Callable, ClassVar, Dict, List
@@ -111,7 +111,7 @@ class WithdrawalRequestInteractionBase:
     """
     Balance of the account that sends the transaction.
     """
-    sender_account: SenderAccount = TestAccount1
+    sender_account: SenderAccount = field(default_factory=lambda: TestAccount1)
     """
     Account that will send the transaction.
     """
@@ -188,7 +188,7 @@ class WithdrawalRequestContract(WithdrawalRequestInteractionBase):
     Address of the contract that will make the call to the pre-deploy contract.
     """
 
-    call_type: Op = Op.CALL
+    call_type: Op = field(default_factory=lambda: Op.CALL)
     """
     Type of call to be used to make the withdrawal request.
     """

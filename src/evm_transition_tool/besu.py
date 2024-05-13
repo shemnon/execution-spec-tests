@@ -32,12 +32,7 @@ class BesuTransitionTool(TransitionTool):
     trace: bool
     besu_trace_dir: Optional[tempfile.TemporaryDirectory]
 
-    def __init__(
-        self,
-        *,
-        binary: Optional[Path] = None,
-        trace: bool = False,
-    ):
+    def __init__(self, *, binary: Optional[Path] = None, trace: bool = False, server: bool = True):
         super().__init__(binary=binary, trace=trace)
         args = [str(self.binary), "t8n", "--help"]
         try:
@@ -48,6 +43,8 @@ class BesuTransitionTool(TransitionTool):
             raise Exception(f"Unexpected exception calling evm tool: {e}.")
         self.help_string = result.stdout
         self.besu_trace_dir = tempfile.TemporaryDirectory() if self.trace else None
+        if not server:
+            raise Exception("Besu must be run in server mode")
 
     def start_server(self):
         """

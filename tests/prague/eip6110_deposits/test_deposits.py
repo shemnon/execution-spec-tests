@@ -3,7 +3,7 @@ abstract: Tests [EIP-6110: Supply validator deposits on chain](https://eips.ethe
     Test [EIP-6110: Supply validator deposits on chain](https://eips.ethereum.org/EIPS/eip-6110).
 """  # noqa: E501
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
 from hashlib import sha256 as sha256_hashlib
 from typing import Callable, ClassVar, Dict, List
@@ -134,7 +134,7 @@ class DepositInteractionBase:
     """
     Balance of the account that sends the transaction.
     """
-    sender_account: SenderAccount = TestAccount1
+    sender_account: SenderAccount = field(default_factory=lambda: TestAccount1)
     """
     Account that sends the transaction.
     """
@@ -213,7 +213,7 @@ class DepositContract(DepositInteractionBase):
     Address of the contract that sends the deposit requests.
     """
 
-    call_type: Op = Op.CALL
+    call_type: Op = field(default=lambda: Op.CALL)
     """
     Type of call to be made to the deposit contract.
     """
