@@ -12,14 +12,8 @@ from ethereum_test_vm import Bytecode, EVMCodeType
 
 from .. import EOF_FORK_NAME
 from . import REFERENCE_SPEC_GIT_PATH, REFERENCE_SPEC_VERSION
-from .helpers import (
-    slot_cold_gas,
-    slot_oog_call_result,
-    slot_sanity_call_result,
-    slot_warm_gas,
-    value_call_legacy_abort,
-    value_call_legacy_success,
-)
+from .helpers import slot_cold_gas, slot_oog_call_result, slot_sanity_call_result, slot_warm_gas
+from .spec import LEGACY_CALL_FAILURE, LEGACY_CALL_SUCCESS
 
 REFERENCE_SPEC_GIT_PATH = REFERENCE_SPEC_GIT_PATH
 REFERENCE_SPEC_VERSION = REFERENCE_SPEC_VERSION
@@ -140,8 +134,8 @@ def gas_test(
             storage={
                 slot_warm_gas: warm_gas,
                 slot_cold_gas: cold_gas,
-                slot_oog_call_result: value_call_legacy_abort,
-                slot_sanity_call_result: value_call_legacy_success,
+                slot_oog_call_result: LEGACY_CALL_FAILURE,
+                slot_sanity_call_result: LEGACY_CALL_SUCCESS,
             },
         ),
     }

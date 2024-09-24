@@ -116,6 +116,7 @@ eip3540
 eip4844
 eip6110
 eip7002
+eip7069
 eip7251
 eips
 EIPs

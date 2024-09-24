@@ -28,8 +28,6 @@ value_exceptional_abort_canary = 0x1984
 
 """Storage values for common testing fields"""
 value_code_worked = 0x2015
-value_call_legacy_abort = 0
-value_call_legacy_success = 1
 
 """Memory and storage value for calldata"""
 value_calldata_1 = 0xC1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1C1
