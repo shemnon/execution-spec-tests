@@ -87,6 +87,7 @@ coinbase
 coincurve
 commonpath
 compilable
+concat
 config
 conftest
 contractAddr
@@ -187,6 +188,7 @@ fp
 fp2
 fromhex
 func
+fuzzer
 g1
 g1add
 g1msm
@@ -516,6 +518,8 @@ argname
 autouse
 basedir
 callspec
+codeblock
+codeblocks
 collectonly
 copyfile
 copytree
