@@ -94,6 +94,7 @@ V1_EOF_OPCODES: List[Op] = [
     Op.MSIZE,
     Op.GAS,
     Op.JUMPDEST,
+    Op.PUSH0,
     Op.PUSH1,
     Op.PUSH2,
     Op.PUSH3,
@@ -176,6 +177,13 @@ V1_EOF_OPCODES: List[Op] = [
 ]
 """
 List of all valid EOF V1 opcodes for Shanghai.
+"""
+
+V1_EOF_OPCODE_NUM: List[Op | None] = [None] * 256
+for op in V1_EOF_OPCODES:
+    V1_EOF_OPCODE_NUM[bytes(op)[0]] = op
+"""
+Valid EOF1 opcodes indexed by number
 """
 
 V1_EOF_DEPRECATED_OPCODES = [

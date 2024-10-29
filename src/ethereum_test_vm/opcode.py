@@ -5873,3 +5873,39 @@ class UndefinedOpcodes(Opcode, Enum):
     OPCODE_EF = Opcode(0xEF)
     OPCODE_F6 = Opcode(0xF6)
     OPCODE_FC = Opcode(0xFC)
+
+
+all_opcodes = set(Opcodes)
+undefined_opcodes = set(UndefinedOpcodes)
+
+# Invalid Opcodes will produce EOFException.UNDEFINED_INSTRUCTION when used in EOFContainer
+invalid_eof_opcodes = {
+    Opcodes.CODESIZE,
+    Opcodes.SELFDESTRUCT,
+    Opcodes.CREATE2,
+    Opcodes.CODECOPY,
+    Opcodes.EXTCODESIZE,
+    Opcodes.EXTCODECOPY,
+    Opcodes.EXTCODEHASH,
+    Opcodes.JUMP,
+    Opcodes.JUMPI,
+    Opcodes.PC,
+    Opcodes.GAS,
+    Opcodes.CREATE,
+    Opcodes.CALL,
+    Opcodes.CALLCODE,
+    Opcodes.DELEGATECALL,
+    Opcodes.STATICCALL,
+}
+
+valid_eof_opcodes = all_opcodes - invalid_eof_opcodes
+"""
+Valid EOF1 opcodes in a set
+"""
+
+valid_eof_opcodes_by_num: List[Opcode | None] = [None] * 256
+for op in valid_eof_opcodes:
+    valid_eof_opcodes_by_num[bytes(op)[0]] = op
+"""
+Valid EOF1 opcodes indexed by number
+"""
