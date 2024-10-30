@@ -5903,7 +5903,7 @@ valid_eof_opcodes = all_opcodes - invalid_eof_opcodes
 Valid EOF1 opcodes in a set
 """
 
-valid_eof_opcodes_by_num: List[Opcode | None] = [None] * 256
+valid_eof_opcodes_by_num: List[Opcodes | None] = [None] * 256
 for op in valid_eof_opcodes:
     valid_eof_opcodes_by_num[bytes(op)[0]] = op
 """
