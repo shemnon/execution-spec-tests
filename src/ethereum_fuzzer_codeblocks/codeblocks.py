@@ -63,12 +63,26 @@ class CodePoint:
             0 if self.immediate is None else int.from_bytes(bytes(self.immediate), byteorder="big")
         )
 
+    def immediate_byte(self) -> int:
+        """Converts the first byte of the immediate value to unsigned value"""
+        return int(self.immediate[0])
+
+    def rjump_vector(self) -> list[int]:
+        """Calculate the RJUMP vectors from the immediate data"""
+        result = []
+        for i in range(self.immediate_byte() + 1):
+            result.append(
+                int.from_bytes(self.immediate[i * 2 + 1 : i * 2 + 3], byteorder="big", signed=True)
+            )
+        return result
+
     def enter_stack(self, stack_min: int, stack_max: int):
         """Merges the existing stack minimums with a new min and max on opcode entry"""
         self.stack_min = min(self.stack_min, stack_min)
         self.stack_max = max(self.stack_max, stack_max)
 
     def reset_stack(self):
+        """Set the stacka s though no calculations have been done"""
         self.stack_min = 1025
         self.stack_max = 0
 
@@ -144,10 +158,16 @@ class CodeBlockSection:
 
     def fill_blocks(self, code: bytes):
         """Fill the blocks of the code section with the provided byecode"""
-        index = 0
         opcodes: list[CodePoint | None] = [None] * len(code)
-        breaks = {0}
 
+        breaks = self.calculate_block_breaks(code, opcodes)
+        self.calculate_stack_heights(opcodes)
+        self.create_code_blocks(breaks, opcodes)
+
+    def calculate_block_breaks(self, code, opcodes) -> set[int]:
+        """Calculate where the code block breaks occur"""
+        index = 0
+        breaks = {0}
         # Fill the code points with the opcodes
         while index < len(code):
             opNum = code[index]
@@ -155,28 +175,33 @@ class CodeBlockSection:
             if op is None:
                 raise InvalidEOFCodeError("Unexpected OP Num %x" % opNum)
 
-            codePoint: CodePoint
+            code_point: CodePoint
             this_index = index
             if op == Op.RJUMPV:
                 jumps = code[index + 1] + 1
-                codePoint = CodePoint(op, code[index + 1 : index + 2 + jumps * 2])
+                code_point = CodePoint(op, code[index + 1 : index + 2 + jumps * 2])
                 index += 1 + jumps * 2
             elif op.data_portion_length > 0:
-                codePoint = CodePoint(op, code[index + 1 : index + 1 + op.data_portion_length])
+                code_point = CodePoint(op, code[index + 1 : index + 1 + op.data_portion_length])
                 index += op.data_portion_length
             else:
-                codePoint = CodePoint(op)
+                code_point = CodePoint(op)
             index += 1
-            opcodes[this_index] = codePoint
+            opcodes[this_index] = code_point
 
             if op == Op.RJUMPI or op == Op.RJUMP:
                 breaks.add(index)
-                breaks.add(index + codePoint.immediate_signed())
+                breaks.add(index + code_point.immediate_signed())
             elif op == Op.RJUMPV:
-                pass  # //FIXME
+                breaks.add(index)
+                for dest in code_point.rjump_vector():
+                    breaks.add(index + dest)
             elif op.terminating:
                 breaks.add(index)
+        return breaks
 
+    def calculate_stack_heights(self, opcodes):
+        """Calculate the stack heights of the code blocks"""
         # Calculate the stack heights
         stack_min = self.inputs
         stack_max = self.inputs
@@ -216,6 +241,8 @@ class CodeBlockSection:
                     stack_min = opcode.stack_min
                     stack_max = opcode.stack_max
 
+    def create_code_blocks(self, breaks, opcodes):
+        """From the block breaks and codepoints, calculate the code points."""
         # split into blocks
         code_block = None
         for i, code_point in enumerate(opcodes):
@@ -228,7 +255,16 @@ class CodeBlockSection:
                 code_block = CodeBlock("i%d" % i)
             op = code_point.opcode
             if op is Op.RJUMP or op is Op.RJUMPI:
-                code_block.successors = ["i%d"%(i+3), "i%d"%(i+3+code_point.immediate_signed())]
+                code_block.successors = [
+                    "i%d" % (i + 3),
+                    "i%d" % (i + 3 + code_point.immediate_signed()),
+                ]
+            elif op is Op.RJUMPV:
+                count_offset = i + 4 + code_point.immediate_byte() * 2
+                code_block.successors = [
+                    "i%d" % (i + count_offset),
+                    *["i%d" % (j + count_offset) for j in code_point.rjump_vector()],
+                ]
             code_block.append_code_point(code_point)
         if code_block is not None:
             self.blocks.append(code_block)  # needed?
@@ -253,13 +289,22 @@ class CodeBlockSection:
                 code_point.immediate = (offset_by_id[block.successors[1]] - offset).to_bytes(
                     2, byteorder="big", signed=True
                 )
+            elif opcode == Op.RJUMPV:
+                new_table = bytearray(code_point.immediate)
+                for i in range(len(block.successors) - 1):
+                    target_bytes = (offset_by_id[block.successors[i + 1]] - offset).to_bytes(
+                        2, byteorder="big", signed=True
+                    )
+                    new_table[i * 2 + 1] = target_bytes[0]
+                    new_table[i * 2 + 2] = target_bytes[1]
+                code_point.immediate = bytes(new_table)
 
         # re-calculate the min/max stack
         for block in self.blocks:
             for code_point in block.code_points:
                 code_point.reset_stack()
 
-        prior: CodePoint | None = None
+        prior = None
         stack_max = self.inputs
         for block in self.blocks:
             for code_point in block.code_points:
@@ -270,10 +315,8 @@ class CodeBlockSection:
                         delta = target.outputs - target.inputs
                     else:
                         delta = prior_op.pushed_stack_items - prior_op.popped_stack_items
-                    code_point.enter_stack(
-                        prior.stack_min + delta, prior.stack_max + delta
-                    )
-                else :
+                    code_point.enter_stack(prior.stack_min + delta, prior.stack_max + delta)
+                else:
                     code_point.enter_stack(stack_max, stack_max)
                 stack_max = max(stack_max, code_point.stack_max)
                 prior = code_point
