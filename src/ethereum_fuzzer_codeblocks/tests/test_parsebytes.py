@@ -62,6 +62,18 @@ sample_contracts = [
         "0155005f506000e200ffef5f5000",
         id="rjumpv",
     ),
+    pytest.param(
+        "ef0001010010020004000f0005000e000e040000000080000501030004010400"
+        "05010400045fe3000161201560015560006000f3e3000250e4e100045fe50003"
+        "5f5f5f5f5f50e45063deadb12d6003555f5f5f5fe4",
+        id="RJUMP_CALLF_range",
+    ),
+    pytest.param(
+        "ef000101001002000400120005000e000e040000000080000301030004010400"
+        "05010400045fe3000150505061201560015560006000f3e3000250e4e100045f"
+        "e500035f5f5f5f5f50e45063deadb12d6003555f5f5f5fe4",
+        id="JUMPF_height",
+    ),
 ]
 
 
@@ -97,5 +109,20 @@ def test_insert_opcode(input: str):
             block.insert_code_point(0, CodePoint(Op.PUSH0))
     container.reconcile_bytecode()
 
-    # print("\n input    - %s" % input)
-    # print("\n bytecode - %s\n" % container.encode().hex())
+
+@pytest.mark.parametrize(
+    "input",
+    sample_contracts,
+)
+def test_reconcile(input: str):
+    """
+    Simple round trip test for parsebytes
+    """
+    container = CodeBlockContainer(bytes.fromhex(input))
+    assert container is not None
+
+    container.reconcile_bytecode()
+
+    encoded = container.encode()
+    actual = encoded.hex()
+    assert input.startswith(actual)
