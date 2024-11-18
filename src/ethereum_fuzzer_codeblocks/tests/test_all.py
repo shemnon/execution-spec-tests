@@ -17395,5 +17395,23 @@ def test_insert_opcode(input: str):
             block.insert_code_point(0, CodePoint(Op.PUSH0))
     container.reconcile_bytecode()
 
-    print("\ninput    - %s" % input)
-    print("\nbytecode - %s\n" % container.encode().hex())
+
+@pytest.mark.parametrize(
+    "input",
+    [pytest.param(contract, id="all_%d" % index) for index, contract in enumerate(all_contracts)],
+)
+def test_reconcile(input: str):
+    """
+    Simple round trip test for parsebytes
+    """
+    if len(input) > 64_000:
+        pytest.skip("Input too bug for code insertion tests (%d)" % len(input))
+
+    container = CodeBlockContainer(bytes.fromhex(input))
+    assert container is not None
+
+    container.reconcile_bytecode()
+
+    encoded = container.encode()
+    actual = encoded.hex()
+    assert input.startswith(actual)

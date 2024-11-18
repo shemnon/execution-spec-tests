@@ -4661,32 +4661,6 @@ class Opcodes(Opcode, Enum):
     Source: [evm.codes/#A4](https://www.evm.codes/#A4)
     """
 
-    RJUMP = Opcode(0xE0, data_portion_length=2)
-    """
-    !!! Note: This opcode is under development
-
-    RJUMP()
-    ----
-
-    Description
-    ----
-
-    Inputs
-    ----
-
-    Outputs
-    ----
-
-    Fork
-    ----
-    EOF Fork
-
-    Gas
-    ----
-
-    Source: [eips.ethereum.org/EIPS/eip-4200](https://eips.ethereum.org/EIPS/eip-4200)
-    """
-
     DATALOAD = Opcode(0xD0, popped_stack_items=1, pushed_stack_items=1, kwargs=["offset"])
     """
     !!! Note: This opcode is under development
@@ -4812,6 +4786,32 @@ class Opcodes(Opcode, Enum):
     - dynamic_gas = 3 * minimum_word_size + memory_expansion_cost
 
     Source: [eips.ethereum.org/EIPS/eip-7480](https://eips.ethereum.org/EIPS/eip-7480)
+    """
+
+    RJUMP = Opcode(0xE0, data_portion_length=2)
+    """
+    !!! Note: This opcode is under development
+
+    RJUMP()
+    ----
+
+    Description
+    ----
+
+    Inputs
+    ----
+
+    Outputs
+    ----
+
+    Fork
+    ----
+    EOF Fork
+
+    Gas
+    ----
+
+    Source: [eips.ethereum.org/EIPS/eip-4200](https://eips.ethereum.org/EIPS/eip-4200)
     """
 
     RJUMPI = Opcode(0xE1, popped_stack_items=1, data_portion_length=2)

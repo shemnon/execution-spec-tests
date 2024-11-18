@@ -156,12 +156,12 @@ class CodeBlockSection:
         self.outputs = outputs
         self.max_stack = max_stack
 
-    def fill_blocks(self, code: bytes):
+    def fill_blocks(self, code: bytes, container):
         """Fill the blocks of the code section with the provided byecode"""
         opcodes: list[CodePoint | None] = [None] * len(code)
 
         breaks = self.calculate_block_breaks(code, opcodes)
-        self.calculate_stack_heights(opcodes)
+        self.calculate_stack_heights(opcodes, container)
         self.create_code_blocks(breaks, opcodes)
 
     def calculate_block_breaks(self, code, opcodes) -> set[int]:
@@ -200,7 +200,7 @@ class CodeBlockSection:
                 breaks.add(index)
         return breaks
 
-    def calculate_stack_heights(self, opcodes):
+    def calculate_stack_heights(self, opcodes, container):
         """Calculate the stack heights of the code blocks"""
         # Calculate the stack heights
         stack_min = self.inputs
@@ -211,30 +211,33 @@ class CodeBlockSection:
             op = code_point.opcode
             code_point.enter_stack(stack_min, stack_max)
             # We are presuming valid eof, otherwise we would check depth here
-            delta = op.pushed_stack_items - op.popped_stack_items
+            if op == Op.CALLF:
+                target_section = container.code_sections[code_point.immediate_signed()]
+                delta = target_section.outputs - target_section.inputs
+            else:
+                delta = op.pushed_stack_items - op.popped_stack_items
             stack_min += delta
             stack_max += delta
             next_op = i + 1 + op.data_portion_length
 
             if op == Op.RJUMP or op == Op.RJUMPI:
-                target = opcodes[i + 3 + code_point.immediate_signed()]
-                if target is not None:
+                offset = code_point.immediate_signed()
+                target = opcodes[next_op + offset]
+                if target is not None and offset > 0:
                     target.enter_stack(stack_min, stack_max)
+                # else validate back jump, but we are not validating
             elif op == Op.RJUMPV:
-                next_i = i + 4 + code_point.immediate[0] * 2
+                next_op = i + 4 + code_point.immediate[0] * 2
                 for j in range(code_point.immediate[0]):
-                    offset = 1 + j * 2
-                    delta = int.from_bytes(
-                        code_point.immediate[offset : offset + 2], byteorder="big", signed=True
+                    index = 1 + j * 2
+                    offset = int.from_bytes(
+                        code_point.immediate[index : index + 2], byteorder="big", signed=True
                     )
-                    target = opcodes[next_i + delta]
-                    if target is not None:
+                    target = opcodes[next_op + offset]
+                    if target is not None and offset > 0:
                         target.enter_stack(stack_min, stack_max)
-            elif op == Op.CALLF:
-                pass
-                # //FIXME
 
-            if not op.terminating and next_op < len(opcodes):
+            if op.terminating and next_op < len(opcodes):
                 opcode = opcodes[next_op]
                 if opcode is not None:
                     # next opcode must be a jump target
@@ -271,6 +274,8 @@ class CodeBlockSection:
 
     def reconcile_bytecode(self, code_sections):
         """Reconcile the bytecode.  `code_sections` is needed for CALLF and JUMPF"""
+        blocks_by_id = {b.label: b for b in self.blocks}
+
         # First update the "offset" so jumps can be re-coded
         offset = 0
         for block in self.blocks:
@@ -305,22 +310,36 @@ class CodeBlockSection:
                 code_point.reset_stack()
 
         prior = None
-        stack_max = self.inputs
+        section_max = self.inputs
+        self.blocks[0].code_points[0].stack_min = section_max
+        self.blocks[0].code_points[0].stack_max = section_max
         for block in self.blocks:
             for code_point in block.code_points:
                 prior_op = None if prior is None else prior.opcode
                 if prior_op is not None:
+                    # stack height adjustment for what we just processed
                     if prior_op == Op.CALLF:
                         target = code_sections[prior.immediate_unsigned()]
                         delta = target.outputs - target.inputs
                     else:
                         delta = prior_op.pushed_stack_items - prior_op.popped_stack_items
-                    code_point.enter_stack(prior.stack_min + delta, prior.stack_max + delta)
-                else:
-                    code_point.enter_stack(stack_max, stack_max)
-                stack_max = max(stack_max, code_point.stack_max)
+
+                    # apply to next operation, lots of jump cases
+                    next_min = prior.stack_min + delta
+                    next_max = prior.stack_max + delta
+                    if prior_op.terminating:
+                        for name in block.successors:
+                            try:
+                                blocks_by_id[name].code_points[0].enter_stack(next_min, next_max)
+                            except KeyError:
+                                # labels may not exist for self-jumps
+                                pass
+                    else:
+                        # not a jump case, just apply to the next operand
+                        code_point.enter_stack(next_min, next_max)
+                section_max = max(section_max, code_point.stack_max)
                 prior = code_point
-        self.max_stack = stack_max
+        self.max_stack = section_max
 
     def bytecode(self) -> bytes:
         """Returns the bytes that represents the opcodes of this code section"""
@@ -419,7 +438,7 @@ class CodeBlockContainer(AbstractContainer):
         ]
         index = index + 4 * num_sections
         for i in range(num_sections):
-            self.code_sections[i].fill_blocks(data[index : index + section_sizes[i]])
+            self.code_sections[i].fill_blocks(data[index : index + section_sizes[i]], self)
             index += section_sizes[i]
 
         # //TODO this will not handle deepest recursion and will need to be re-written linearly
