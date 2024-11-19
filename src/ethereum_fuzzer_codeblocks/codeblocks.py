@@ -138,7 +138,8 @@ class CodeBlock:
 
     def __str__(self) -> str:
         """String representation of a code block"""
-        return "".join([str(point) for point in self.code_points])
+        return self.label + "/" + "".join([str(point) for point in self.code_points]) + (
+            "->" + ",".join(self.successors) if self.successors else "")
 
 
 class CodeBlockSection:
@@ -313,32 +314,31 @@ class CodeBlockSection:
         section_max = self.inputs
         self.blocks[0].code_points[0].stack_min = section_max
         self.blocks[0].code_points[0].stack_max = section_max
+        next_min=0
+        next_max=0
+        continuing = False
         for block in self.blocks:
             for code_point in block.code_points:
-                prior_op = None if prior is None else prior.opcode
-                if prior_op is not None:
-                    # stack height adjustment for what we just processed
-                    if prior_op == Op.CALLF:
-                        target = code_sections[prior.immediate_unsigned()]
-                        delta = target.outputs - target.inputs
-                    else:
-                        delta = prior_op.pushed_stack_items - prior_op.popped_stack_items
-
-                    # apply to next operation, lots of jump cases
-                    next_min = prior.stack_min + delta
-                    next_max = prior.stack_max + delta
-                    if prior_op.terminating:
-                        for name in block.successors:
-                            try:
-                                blocks_by_id[name].code_points[0].enter_stack(next_min, next_max)
-                            except KeyError:
-                                # labels may not exist for self-jumps
-                                pass
-                    else:
-                        # not a jump case, just apply to the next operand
-                        code_point.enter_stack(next_min, next_max)
+                if continuing:
+                    code_point.enter_stack(next_min, next_max)
                 section_max = max(section_max, code_point.stack_max)
-                prior = code_point
+
+                # stack height adjustment for what we just processed
+                point_opcode = code_point.opcode
+                if point_opcode == Op.CALLF:
+                    target = code_sections[code_point.immediate_unsigned()]
+                    delta = target.outputs - target.inputs
+                else:
+                    delta = point_opcode.pushed_stack_items - point_opcode.popped_stack_items
+
+                # apply to next operation, lots of jump cases
+                next_min = code_point.stack_min + delta
+                next_max = code_point.stack_max + delta
+                continuing = point_opcode.terminating is False
+
+            # end of block, update all non-next successors, i.e. RJUMPI and RJUMPV targets
+            for name in block.successors[1:]:
+                blocks_by_id[name].code_points[0].enter_stack(next_min, next_max)
         self.max_stack = section_max
 
     def bytecode(self) -> bytes:
