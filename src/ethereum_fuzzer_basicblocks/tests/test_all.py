@@ -4,7 +4,7 @@ Tests parsing EOF bytestreams into code blocks
 
 import pytest
 
-from ethereum_fuzzer_codeblocks.codeblocks import CodeBlockContainer, CodePoint
+from ethereum_fuzzer_basicblocks.basicblocks import BasicBlockContainer, CodePoint
 from ethereum_test_tools import Opcodes as Op
 
 all_contracts = [
@@ -17367,7 +17367,7 @@ def test_parse_bytes_all(input: str):
     """
     Simple round trip test for parsebytes
     """
-    container = CodeBlockContainer(bytes.fromhex(input))
+    container = BasicBlockContainer(bytes.fromhex(input))
     assert container is not None
 
     encoded = container.encode()
@@ -17386,7 +17386,7 @@ def test_insert_opcode(input: str):
     if len(input) > 64_000:
         pytest.skip("Input too bug for code insertion tests (%d)" % len(input))
 
-    container = CodeBlockContainer(bytes.fromhex(input))
+    container = BasicBlockContainer(bytes.fromhex(input))
     assert container is not None
 
     for section in container.code_sections:
@@ -17407,7 +17407,7 @@ def test_reconcile(input: str):
     if len(input) > 64_000:
         pytest.skip("Input too bug for code insertion tests (%d)" % len(input))
 
-    container = CodeBlockContainer(bytes.fromhex(input))
+    container = BasicBlockContainer(bytes.fromhex(input))
     assert container is not None
 
     container.reconcile_bytecode()
