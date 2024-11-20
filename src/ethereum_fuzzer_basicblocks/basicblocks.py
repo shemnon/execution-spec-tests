@@ -95,7 +95,7 @@ class CodePoint:
         return self.opcode.int().to_bytes(1, byteorder="big") + self.immediate
 
 
-class CodeBlock:
+class BasicBlock:
     """A run of multiple code points with no branching or termination"""
 
     labels: str
@@ -142,10 +142,10 @@ class CodeBlock:
             "->" + ",".join(self.successors) if self.successors else "")
 
 
-class CodeBlockSection:
+class BasicBlockSection:
     """A Code Section composed of multiple code blocks"""
 
-    blocks: list[CodeBlock]
+    blocks: list[BasicBlock]
     inputs: int
     outputs: int
     max_stack: int
@@ -256,7 +256,7 @@ class CodeBlockSection:
             if code_point is None:
                 continue
             if code_block is None:
-                code_block = CodeBlock("i%d" % i)
+                code_block = BasicBlock("i%d" % i)
             op = code_point.opcode
             if op is Op.RJUMP or op is Op.RJUMPI:
                 code_block.successors = [
@@ -387,10 +387,10 @@ class AbstractContainer:
         pass
 
 
-class CodeBlockContainer(AbstractContainer):
+class BasicBlockContainer(AbstractContainer):
     """An EOF container in code block form"""
 
-    sections: list[CodeBlockSection]
+    sections: list[BasicBlockSection]
     data: bytes
     data_length: int
     containers: list[AbstractContainer]  # type games to prevent self-typed reference
@@ -403,7 +403,7 @@ class CodeBlockContainer(AbstractContainer):
 
     def decode(self, data: bytes, parent: AbstractContainer | None = None):
         """
-        Extracts the container in the bytes and stores it in this CodeBlockContainer.
+        Extracts the container in the bytes and stores it in this BasicBlockContainer.
         If a container was held in this object,it will be completely overwriten.
         """
         if not data.startswith(b"\xef\0\x01\x01"):
@@ -431,7 +431,7 @@ class CodeBlockContainer(AbstractContainer):
 
         num_sections = len(section_sizes)
         self.code_sections = [
-            CodeBlockSection(
+            BasicBlockSection(
                 data[index + x * 4], data[index + 1 + x * 4], short_at(data, index + 2 + x * 4)
             )
             for x in range(num_sections)
@@ -441,11 +441,10 @@ class CodeBlockContainer(AbstractContainer):
             self.code_sections[i].fill_blocks(data[index : index + section_sizes[i]], self)
             index += section_sizes[i]
 
-        # //TODO this will not handle deepest recursion and will need to be re-written linearly
         num_containers = len(container_sizes)
         self.containers = []
         for i in range(num_containers):
-            self.containers.append(CodeBlockContainer(data[index : index + container_sizes[i]]))
+            self.containers.append(BasicBlockContainer(data[index : index + container_sizes[i]]))
             index += container_sizes[i]
 
         self.data_length = data_size
