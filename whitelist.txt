@@ -501,6 +501,8 @@ addinivalue
 argname
 autouse
 basedir
+basicblock
+basicblocks
 callspec
 codeblock
 codeblocks

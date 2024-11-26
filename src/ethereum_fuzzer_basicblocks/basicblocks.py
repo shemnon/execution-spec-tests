@@ -138,8 +138,12 @@ class BasicBlock:
 
     def __str__(self) -> str:
         """String representation of a code block"""
-        return self.label + "/" + "".join([str(point) for point in self.code_points]) + (
-            "->" + ",".join(self.successors) if self.successors else "")
+        return (
+            self.label
+            + "/"
+            + "".join([str(point) for point in self.code_points])
+            + ("->" + ",".join(self.successors) if self.successors else "")
+        )
 
 
 class BasicBlockSection:
@@ -310,12 +314,11 @@ class BasicBlockSection:
             for code_point in block.code_points:
                 code_point.reset_stack()
 
-        prior = None
         section_max = self.inputs
         self.blocks[0].code_points[0].stack_min = section_max
         self.blocks[0].code_points[0].stack_max = section_max
-        next_min=0
-        next_max=0
+        next_min = 0
+        next_max = 0
         continuing = False
         for block in self.blocks:
             for code_point in block.code_points:
