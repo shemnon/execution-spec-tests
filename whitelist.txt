@@ -294,6 +294,8 @@ mkdocs
 mkdocstrings
 msm
 mypy
+mutator
+mutatable
 ctx
 namespace
 natively

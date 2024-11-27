@@ -477,10 +477,9 @@ wheels = [
 [[package]]
 name = "ethereum"
 version = "0.1.0"
-source = { git = "https://github.com/ethereum/execution-specs#9b95554a88d2a8485f8180254d0f6a493a593fda" }
+source = { git = "https://github.com/ethereum/execution-specs?rev=9c12043fe0af7b62f7fb651424747c90ae1f8c8b#9c12043fe0af7b62f7fb651424747c90ae1f8c8b" }
 dependencies = [
     { name = "coincurve" },
-    { name = "ethereum-types" },
     { name = "py-ecc" },
     { name = "pycryptodome" },
     { name = "typing-extensions" },
@@ -557,7 +556,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.0,<9" },
     { name = "coincurve", specifier = ">=20.0.0,<21" },
     { name = "colorlog", specifier = ">=6.7.0,<7" },
-    { name = "ethereum", git = "https://github.com/ethereum/execution-specs" },
+    { name = "ethereum", git = "https://github.com/ethereum/execution-specs?rev=9c12043fe0af7b62f7fb651424747c90ae1f8c8b#9c12043fe0af7b62f7fb651424747c90ae1f8c8b" },
     { name = "ethereum-spec-evm-resolver", git = "https://github.com/petertdavies/ethereum-spec-evm-resolver" },
     { name = "ethereum-types", specifier = ">=0.2.1,<0.3" },
     { name = "filelock", specifier = ">=3.15.1,<4" },
