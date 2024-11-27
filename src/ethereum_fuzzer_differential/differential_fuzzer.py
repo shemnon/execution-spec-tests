@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Dict, List
 
 from ethereum_clis.file_utils import write_json_file
-from ethereum_test_fixtures.file import Fixtures
+from ethereum_fuzzer_differential.mutator import StateTestMutator
+from ethereum_fuzzer_differential.strategies.basic_strategies import default_strategies
+from ethereum_test_fixtures.file import Fixtures, StateFixtures
 from ethereum_test_fixtures.state import Fixture as StateFixture
 
 
@@ -16,16 +18,17 @@ class DifferentialFuzzer:
     Holds the execution state and logic of the differential fuzzer
     """
 
-    corpus: List[StateFixture]
+    corpus: List[StateFixtures]
     work_dir: str
     step_num: int
     runtest_binary: str
     client_list: Dict[str, str]
     test_prefix: str
+    mutator: StateTestMutator
 
     def __init__(
         self,
-        corpus: List[StateFixture],
+        corpus: List[StateFixtures],
         work_dir: str,
         runtest_binary: str,
         client_list: Dict[str, str],
@@ -38,18 +41,30 @@ class DifferentialFuzzer:
         self.client_list = client_list
         self.step_num = step_num
         self.test_prefix = test_prefix
+        self.mutator = StateTestMutator(default_strategies)
 
     def run_step(self):
         """Run a single step of the fuzzer."""
         self.step_num = self.step_num + 1
         self.mutate_corpus()
         self.write_corpus()
-        self.execute_runtest()
-        self.cleanup_round(self.step_num)
+        if self.execute_runtest():
+            self.cleanup_round(self.step_num)
+            return True
+        else:
+            return False
 
     def mutate_corpus(self):
         """Mutates the corpus."""
-        pass
+        new_corpus = []
+        for state in self.corpus:
+            try:
+                fixtures, mutation = self.mutator.mutate(state)
+                new_corpus.append(fixtures)
+            except Exception as e:
+                print(e)
+                new_corpus.append(state)
+        self.corpus = new_corpus
 
     def write_corpus(self):
         """Writes the mutated corpus for the current round to the working directory."""
@@ -71,6 +86,8 @@ class DifferentialFuzzer:
         output_dir = os.path.join(
             self.work_dir, "runtest_%s_%s" % (self.test_prefix, self.step_num)
         )
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
         args = [
             str(self.runtest_binary),
             *[c for cc in clients for c in cc],
@@ -87,6 +104,7 @@ class DifferentialFuzzer:
             raise Exception(f"Unexpected exception calling evm tool: {e}.")
         print(result.stdout)
         print(result.stderr)
+        return "Consensus error" not in result.stdout
 
     def cleanup_round(self, step_num):
         """Removes the corpus files from the current round."""
@@ -111,7 +129,7 @@ def build_corpus(corpus_dir: str):
                     state_test.info = {
                         "comment": "diff_fuzz corpus file",
                         "source": str(file),
-                        "mutations": [],
+                        "mutations": "",
                     }
                 corpus.append(state_tests)
             except ValueError:
