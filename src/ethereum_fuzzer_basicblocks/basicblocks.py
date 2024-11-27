@@ -132,6 +132,10 @@ class BasicBlock:
             self._code_size = sum([point.point_size() for point in self.code_points])
         return self._code_size
 
+    def opcode_count(self):
+        """Returns the number of bytes this code block would occupy"""
+        return len(self.code_points)
+
     def bytecode(self) -> bytes:
         """Returns the opcodes as bytes for this block of code"""
         return concat_bytes([code_point.bytecode() for code_point in self.code_points])
@@ -393,13 +397,13 @@ class AbstractContainer:
 class BasicBlockContainer(AbstractContainer):
     """An EOF container in code block form"""
 
-    sections: list[BasicBlockSection]
+    code_sections: list[BasicBlockSection]
     data: bytes
     data_length: int
     containers: list[AbstractContainer]  # type games to prevent self-typed reference
 
     def __init__(self, data: bytes):
-        self.sections = []
+        self.code_sections = []
         self.data_length = 0
         self.containers = []
         self.decode(data, None)

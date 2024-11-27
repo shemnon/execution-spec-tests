@@ -16,7 +16,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.1.0,<9",
-    "ethereum @ git+https://github.com/ethereum/execution-specs",
+    "ethereum @ git+https://github.com/ethereum/execution-specs@9c12043fe0af7b62f7fb651424747c90ae1f8c8b",
     "hive.py @ git+https://github.com/marioevz/hive.py",
     "ethereum-spec-evm-resolver @ git+https://github.com/petertdavies/ethereum-spec-evm-resolver",
     "setuptools",
