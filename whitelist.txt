@@ -508,6 +508,7 @@ basicblocks
 callspec
 codeblock
 codeblocks
+codepoint
 collectonly
 copyfile
 copytree
