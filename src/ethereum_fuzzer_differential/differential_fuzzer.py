@@ -3,14 +3,25 @@
 """
 import os
 import subprocess
+import traceback
 from pathlib import Path
 from typing import Dict, List
 
 from ethereum_clis.file_utils import write_json_file
-from ethereum_fuzzer_differential.mutator import StateTestMutator
+from ethereum_fuzzer_differential.mutator import MutateError, StateTestMutator
 from ethereum_fuzzer_differential.strategies.basic_strategies import default_strategies
 from ethereum_test_fixtures.file import Fixtures, StateFixtures
 from ethereum_test_fixtures.state import Fixture as StateFixture
+
+
+def build_state_fixtures_context(state: StateFixtures):
+    """Extracts all the addresses into a context map."""
+    test = next(iter(state.items()))
+    fixture = test[1]
+    addresses = []
+    for (addr, acct) in fixture.pre.root.items():
+        addresses.append(addr)
+    return {"addresses": sorted(addresses)}
 
 
 class DifferentialFuzzer:
@@ -58,12 +69,19 @@ class DifferentialFuzzer:
         """Mutates the corpus."""
         new_corpus = []
         for state in self.corpus:
+            context = build_state_fixtures_context(state)
             try:
-                fixtures, mutation = self.mutator.mutate(state)
+                fixtures, mutation = self.mutator.mutate(state, context)
                 new_corpus.append(fixtures)
+            except MutateError:
+                # Mutation failed for an expected reason, just don't mutate this test
+                new_corpus.append(state)
             except Exception as e:
+                # bigger issue, log exception
+                traceback.print_exc()
                 print(e)
                 new_corpus.append(state)
+
         self.corpus = new_corpus
 
     def write_corpus(self):
@@ -95,15 +113,21 @@ class DifferentialFuzzer:
             output_dir,
             os.path.join(self.work_dir, "{}_{}_*.json".format(self.test_prefix, self.step_num)),
         ]
-        print(args)
+        with open(os.path.join(output_dir, "runtest-args.txt"), "w") as f:
+            f.write(" ".join(args))
+
         try:
             result = subprocess.run(args, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
             raise Exception("evm process unexpectedly returned a non-zero status code: " f"{e}.")
         except Exception as e:
             raise Exception(f"Unexpected exception calling evm tool: {e}.")
-        print(result.stdout)
-        print(result.stderr)
+
+        with open(os.path.join(output_dir, "runtest-out.txt"), "w") as f:
+            f.write(result.stdout)
+        with open(os.path.join(output_dir, "runtest-err.txt"), "w") as f:
+            f.write(result.stderr)
+
         return "Consensus error" not in result.stdout
 
     def cleanup_round(self, step_num):
