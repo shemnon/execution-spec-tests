@@ -44,16 +44,39 @@ from ethereum_fuzzer_differential.differential_fuzzer import DifferentialFuzzer,
     multiple=True,
     help="clients to fuzz test against.",
 )
+@click.option(
+    "--step_count",
+    "steps",
+    type=int,
+    required=False,
+    default=10,
+    help="Number of mutation steps to run before stopping",
+)
+@click.option(
+    "--step_num",
+    "step_num",
+    type=int,
+    required=False,
+    default=1,
+    help="Step number to start counting at",
+)
 def differential_fuzzing(
-    corpus_dir: str, work_dir: str, runtest_binary: str, clients: Dict[str, str]
+    corpus_dir: str,
+    work_dir: str,
+    runtest_binary: str,
+    clients: Dict[str, str],
+    steps: int,
+    step_num: int,
 ):
     """
     The CLI wrapper run differential fuzzing
     """
     corpus = build_corpus(corpus_dir)
 
-    diff_fuzz = DifferentialFuzzer(corpus, work_dir, runtest_binary, clients, step_num=43)
-    diff_fuzz.run_step()
+    diff_fuzz = DifferentialFuzzer(
+        corpus, work_dir, runtest_binary, clients, steps=range(step_num, step_num + steps)
+    )
+    diff_fuzz.run_steps()
 
 
 if __name__ == "__main__":

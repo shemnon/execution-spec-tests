@@ -6,6 +6,7 @@ from abc import abstractmethod
 from typing import Any, Dict, Generic, List, Tuple, TypeVar
 
 from ethereum.prague.vm.eof.validation import ContainerContext, validate_eof_container
+from ethereum.exceptions import EthereumException
 
 from ethereum_fuzzer_basicblocks.basicblocks import BasicBlockContainer
 from ethereum_test_base_types import Account
@@ -73,11 +74,13 @@ class AccountMutator(MutationStrategy[Account]):
         container = BasicBlockContainer(account.code)
         new_container, mutation = eof_mutator.mutate(container, context)
         container.reconcile_bytecode()
+        # We need the osaka version of ethereum-execution-specs to be imported
         code = container.encode()
         try:
+            # We need the osaka version of ethereum-execution-specs to be imported
             validate_eof_container(code, ContainerContext.RUNTIME)
             return account.copy(code=container.encode()), mutation
-        except ValueError:
+        except EthereumException:
             return account, ""
 
     def add_strategy(self, mutator: EOFMutator):
@@ -98,7 +101,7 @@ class StateTestMutator(MutationStrategy[StateFixtures]):
 
     def mutate(self, target: StateFixtures, context) -> Tuple[StateFixtures, str]:
         """
-        For each account in the fixture, if it is an EOF contract ,utate it
+        For each account in the fixture, if it is an EOF contract mutate it
 
         Only contract mutations are done, but there is a future where the rest of the state test
         may need to be mutated: inputs, memory, adding/deleting accounts, etc.
