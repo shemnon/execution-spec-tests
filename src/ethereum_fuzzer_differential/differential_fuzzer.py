@@ -1,7 +1,10 @@
 """
 //FIXME
 """
+import glob
 import os
+import re
+import shutil
 import subprocess
 import traceback
 from pathlib import Path
@@ -31,7 +34,7 @@ class DifferentialFuzzer:
 
     corpus: List[StateFixtures]
     work_dir: str
-    step_num: int
+    steps: range
     runtest_binary: str
     client_list: Dict[str, str]
     test_prefix: str
@@ -43,27 +46,29 @@ class DifferentialFuzzer:
         work_dir: str,
         runtest_binary: str,
         client_list: Dict[str, str],
-        step_num: int = 0,
+        steps: range,
         test_prefix: str = "mutated_test",
     ) -> None:
         self.corpus = corpus
         self.work_dir = work_dir
         self.runtest_binary = runtest_binary
         self.client_list = client_list
-        self.step_num = step_num
+        self.steps = steps
         self.test_prefix = test_prefix
         self.mutator = StateTestMutator(default_strategies)
 
-    def run_step(self):
-        """Run a single step of the fuzzer."""
-        self.step_num = self.step_num + 1
+    def run_steps(self):
+        """Run the fuzzer over the specified steps range."""
+        for step_num in self.steps:
+            self.run_step(step_num)
+
+    def run_step(self, step_num: int):
+        """Run the fuzzer for a single step."""
         self.mutate_corpus()
-        self.write_corpus()
-        if self.execute_runtest():
-            self.cleanup_round(self.step_num)
-            return True
-        else:
-            return False
+        self.write_corpus(step_num)
+        clean_run:bool = self.execute_runtest(step_num)
+        self.cleanup_round(step_num)
+        return clean_run
 
     def mutate_corpus(self):
         """Mutates the corpus."""
@@ -84,7 +89,7 @@ class DifferentialFuzzer:
 
         self.corpus = new_corpus
 
-    def write_corpus(self):
+    def write_corpus(self, step_num: int):
         """Writes the mutated corpus for the current round to the working directory."""
         for idx, state_test in enumerate(self.corpus):
             test = {
@@ -94,16 +99,14 @@ class DifferentialFuzzer:
             write_json_file(
                 test,
                 os.path.join(
-                    self.work_dir, "{}_{}_{}.json".format(self.test_prefix, self.step_num, idx)
+                    self.work_dir, "{}_{}_{}.json".format(self.test_prefix, step_num, idx)
                 ),
             )
 
-    def execute_runtest(self):
+    def execute_runtest(self, step_num: int):
         """Executes goevmlab's runtest against the working files for the current round."""
         clients = [["--" + client[0], client[1]] for client in self.client_list]
-        output_dir = os.path.join(
-            self.work_dir, "runtest_%s_%s" % (self.test_prefix, self.step_num)
-        )
+        output_dir = os.path.join(self.work_dir, "runtest_%s_%s" % (self.test_prefix, step_num))
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
         args = [
@@ -111,7 +114,7 @@ class DifferentialFuzzer:
             *[c for cc in clients for c in cc],
             "--outdir",
             output_dir,
-            os.path.join(self.work_dir, "{}_{}_*.json".format(self.test_prefix, self.step_num)),
+            os.path.join(self.work_dir, "{}_{}_*.json".format(self.test_prefix, step_num)),
         ]
         with open(os.path.join(output_dir, "runtest-args.txt"), "w") as f:
             f.write(" ".join(args))
@@ -128,16 +131,21 @@ class DifferentialFuzzer:
         with open(os.path.join(output_dir, "runtest-err.txt"), "w") as f:
             f.write(result.stderr)
 
+        for bug in set(
+            re.findall(
+                os.path.join(self.work_dir, r"{}_{}_\d+.json".format(self.test_prefix, step_num)),
+                result.stdout,
+            )
+        ):
+            print("Consensus fault found:", bug)
+            shutil.move(bug, output_dir)
+
         return "Consensus error" not in result.stdout
 
-    def cleanup_round(self, step_num):
+    def cleanup_round(self, step_num: int):
         """Removes the corpus files from the current round."""
-        round_prefix = "%s_%s_" % (self.test_prefix, self.step_num)
-        for subdir, dirs, files in os.walk(self.work_dir):
-            for file in files:
-                if file.startswith(round_prefix) and file.endswith(".json"):
-                    os.remove(os.path.join(subdir, file))
-
+        for f in glob.glob(os.path.join(self.work_dir, "%s_%s_*.json" % (self.test_prefix, step_num))):
+            os.remove(f)
 
 def build_corpus(corpus_dir: str):
     """Builds and edits the corpus files from a seed directory."""
