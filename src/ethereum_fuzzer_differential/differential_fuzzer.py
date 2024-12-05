@@ -46,6 +46,7 @@ class DifferentialFuzzer:
         work_dir: str,
         runtest_binary: str,
         client_list: Dict[str, str],
+        max_gas: int,
         steps: range,
         test_prefix: str = "mutated_test",
     ) -> None:
@@ -55,10 +56,12 @@ class DifferentialFuzzer:
         self.client_list = client_list
         self.steps = steps
         self.test_prefix = test_prefix
-        self.mutator = StateTestMutator(default_strategies)
+        self.mutator = StateTestMutator(max_gas, default_strategies)
 
     def run_steps(self):
         """Run the fuzzer over the specified steps range."""
+        if not os.path.exists(self.work_dir):
+            os.mkdir(self.work_dir)
         for step_num in self.steps:
             self.run_step(step_num)
 
@@ -66,7 +69,7 @@ class DifferentialFuzzer:
         """Run the fuzzer for a single step."""
         self.mutate_corpus()
         self.write_corpus(step_num)
-        clean_run:bool = self.execute_runtest(step_num)
+        clean_run: bool = self.execute_runtest(step_num)
         self.cleanup_round(step_num)
         return clean_run
 
@@ -144,8 +147,12 @@ class DifferentialFuzzer:
 
     def cleanup_round(self, step_num: int):
         """Removes the corpus files from the current round."""
-        for f in glob.glob(os.path.join(self.work_dir, "%s_%s_*.json" % (self.test_prefix, step_num))):
+        print("Finised step %d/%d..." % (step_num, self.steps[-1]))
+        for f in glob.glob(
+            os.path.join(self.work_dir, "%s_%s_*.json" % (self.test_prefix, step_num))
+        ):
             os.remove(f)
+
 
 def build_corpus(corpus_dir: str):
     """Builds and edits the corpus files from a seed directory."""

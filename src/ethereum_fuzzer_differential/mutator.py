@@ -5,13 +5,14 @@ import random
 from abc import abstractmethod
 from typing import Any, Dict, Generic, List, Tuple, TypeVar
 
-from ethereum.prague.vm.eof.validation import ContainerContext, validate_eof_container
 from ethereum.exceptions import EthereumException
+from ethereum.prague.vm.eof.validation import ContainerContext, validate_eof_container
 
 from ethereum_fuzzer_basicblocks.basicblocks import BasicBlockContainer
-from ethereum_test_base_types import Account
+from ethereum_test_base_types import Account, ZeroPaddedHexNumber
 from ethereum_test_fixtures.file import StateFixtures
 from ethereum_test_fixtures.state import Fixture as StateFixture
+from ethereum_test_fixtures.state import FixtureTransaction
 
 Mutatable = TypeVar("Mutatable", BasicBlockContainer, StateFixtures, Account)
 
@@ -91,12 +92,14 @@ class AccountMutator(MutationStrategy[Account]):
 
 
 class StateTestMutator(MutationStrategy[StateFixtures]):
-    """Mutates a state test.  Currently it only mutates EOF contracts"""
+    """Mutates a state test.  Currently, it only mutates EOF contracts"""
 
     contract_mutator: AccountMutator
+    max_gas: int
 
-    def __init__(self, eof_mutation_strategies) -> None:
+    def __init__(self, max_gas: int, eof_mutation_strategies) -> None:
         super().__init__(1)
+        self.max_gas = max_gas
         self.contract_mutator = AccountMutator(eof_mutation_strategies)
 
     def mutate(self, target: StateFixtures, context) -> Tuple[StateFixtures, str]:
@@ -111,6 +114,7 @@ class StateTestMutator(MutationStrategy[StateFixtures]):
         info = fixture.info
         pre = {}
         mutation_log = []
+        tx: FixtureTransaction = fixture.transaction.copy(deep=True)
         for (addr, acct) in fixture.pre.root.items():
             if acct.code.startswith(b"\xef\0"):
                 new_acct, mutation = self.contract_mutator.mutate(acct, context)
@@ -119,13 +123,16 @@ class StateTestMutator(MutationStrategy[StateFixtures]):
                 mutation_log.append("account %s" % addr)
             else:
                 pre[addr] = acct
+        tx.gas_limit = [
+            ZeroPaddedHexNumber(min(gas_limit, self.max_gas)) for gas_limit in tx.gas_limit
+        ]
         result = StateFixtures(
             root={
                 test[0]: StateFixture(
                     info=info,
                     env=fixture.env,
                     pre=pre,
-                    transaction=fixture.transaction,
+                    transaction=tx,
                     post=fixture.post,
                 )
             }
