@@ -45,7 +45,15 @@ from ethereum_fuzzer_differential.differential_fuzzer import DifferentialFuzzer,
     help="clients to fuzz test against.",
 )
 @click.option(
-    "--step_count",
+    "--max-gas",
+    "max_gas",
+    type=int,
+    required=False,
+    default=100_000_000,
+    help="Maximum amount of gas to pass out of mutation.",
+)
+@click.option(
+    "--step-count",
     "steps",
     type=int,
     required=False,
@@ -53,7 +61,7 @@ from ethereum_fuzzer_differential.differential_fuzzer import DifferentialFuzzer,
     help="Number of mutation steps to run before stopping",
 )
 @click.option(
-    "--step_num",
+    "--step-num",
     "step_num",
     type=int,
     required=False,
@@ -65,6 +73,7 @@ def differential_fuzzing(
     work_dir: str,
     runtest_binary: str,
     clients: Dict[str, str],
+    max_gas: int,
     steps: int,
     step_num: int,
 ):
@@ -74,7 +83,7 @@ def differential_fuzzing(
     corpus = build_corpus(corpus_dir)
 
     diff_fuzz = DifferentialFuzzer(
-        corpus, work_dir, runtest_binary, clients, steps=range(step_num, step_num + steps)
+        corpus, work_dir, runtest_binary, clients, max_gas, steps=range(step_num, step_num + steps)
     )
     diff_fuzz.run_steps()
 
