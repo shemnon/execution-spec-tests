@@ -70,13 +70,18 @@ def find_random_opcode(container: BasicBlockContainer, opcodes: list[Op]) -> Tup
 def optimize_push(code_point: CodePoint) -> CodePoint:
     """Ensures all push opcodes have enough size for the immediate they contain"""
     op_num = code_point.opcode.int()
-    immediate_size = len(code_point.immediate)
-    if immediate_size > 32:
-        raise ArgumentError(None, "Push Immediate too large" + str(immediate_size))
     if Op.PUSH0.int() <= op_num <= Op.PUSH32.int():
+        immediate = code_point.immediate
+        while len(immediate) > 0 and immediate[0] == 0:
+            immediate = immediate[1:]
+        immediate_size = len(immediate)
+        if immediate_size > 32:
+            raise ArgumentError(None, "Push Immediate too large" + str(immediate_size))
         new_opcode_num = Op.PUSH0.int() + immediate_size
-        new_opcode = valid_eof_opcodes_by_num[new_opcode_num]
-        return code_point if new_opcode is None else CodePoint(new_opcode, code_point.immediate)
+        if new_opcode_num != op_num:
+            new_opcode = valid_eof_opcodes_by_num[new_opcode_num]
+            if new_opcode is not None:
+                return CodePoint(new_opcode, immediate)
     return code_point
 
 
@@ -105,7 +110,7 @@ class PushPopMutation(EOFMutator):
 
 
 class ReplacePushWithAddress(EOFMutator):
-    """Adds PUSH0/POP at some random point in a random section"""
+    """Picks a random push and replaces it with an address in the context"""
 
     def __init__(self):
         super().__init__(1)
@@ -113,27 +118,19 @@ class ReplacePushWithAddress(EOFMutator):
     def mutate(
         self, container: BasicBlockContainer, context: Dict[str, Any]
     ) -> Tuple[BasicBlockContainer, str]:
-        """Adds PUSH0/POP at some random point in a random section"""
+        """Picks a random push and replaces it with an address in the context"""
         section_idx, block_idx, pos = find_random_opcode(container, push_opcodes)
         address = random.choice(context["addresses"])
 
         if section_idx == -1:
             raise MutateError("No section found")
 
-        try:
-            code_point = container.code_sections[section_idx].blocks[block_idx].code_points[pos]
-            code_point.immediate = address
+        code_point = container.code_sections[section_idx].blocks[block_idx].code_points[pos]
+        code_point.immediate = address
 
-            container.code_sections[section_idx].blocks[block_idx].code_points[
-                pos
-            ] = optimize_push(code_point)
-        except IndexError:
-            print(section_idx, block_idx, pos)
-            print(
-                len(container.code_sections),
-                len(container.code_sections[section_idx].blocks),
-                len(container.code_sections[section_idx].blocks[block_idx].code_points),
-            )
+        container.code_sections[section_idx].blocks[block_idx].code_points[pos] = optimize_push(
+            code_point
+        )
 
         return container, "set address section %d block %d pos %d" % (
             section_idx,
@@ -142,4 +139,78 @@ class ReplacePushWithAddress(EOFMutator):
         )
 
 
-default_strategies = [PushPopMutation, ReplacePushWithAddress]
+class ReplacePushWithRandom(EOFMutator):
+    """Picks a random push and replaces it with a random number, shorter numbers more frequently"""
+
+    push_size_distribution = [*[1] * 6, *[2] * 5, *[4] * 4, *[8] * 3, *[16] * 2, 32, *range(0, 32)]
+
+    def __init__(self):
+        super().__init__(10)
+
+    def mutate(
+        self, container: BasicBlockContainer, context: Dict[str, Any]
+    ) -> Tuple[BasicBlockContainer, str]:
+        """Mutates a Push with a random number."""
+        section_idx, block_idx, pos = find_random_opcode(container, push_opcodes)
+        if section_idx == -1:
+            raise MutateError("No section found")
+
+        push_size: int = random.choice(self.push_size_distribution)
+        push_value: bytes = random.randbytes(push_size)
+
+        code_point = container.code_sections[section_idx].blocks[block_idx].code_points[pos]
+        code_point.immediate = push_value
+
+        container.code_sections[section_idx].blocks[block_idx].code_points[pos] = optimize_push(
+            code_point
+        )
+
+        return container, "set push random size %d section %d block %d pos %d" % (
+            push_size,
+            section_idx,
+            block_idx,
+            pos,
+        )
+
+
+class ReplacePushWithMagic(EOFMutator):
+    """
+    Picks a random push and replaces it with a "magic" number. Magic numbers tend to break things in
+    implementations and consist of things like int/unit boundaries, javascript maxes, and other
+    numbers with "magical" or special handling in various languages or parts of the spec.
+    """
+    magic_numbers = [n.to_bytes(32, byteorder="big") for n in [
+        *[2 ** x - 1 for x in [4, 7, 8, 10, 15, 16, 31, 32, 53, 63, 64, 256]],
+        *[2 ** x for x in [4, 7, 8, 10, 15, 16, 31, 32, 53, 63, 64]],
+        17,
+        1025,
+    ]]
+
+    def __init__(self):
+        super().__init__(10)
+
+    def mutate(
+        self, container: BasicBlockContainer, context: Dict[str, Any]
+    ) -> Tuple[BasicBlockContainer, str]:
+        """Mutates a push to a "magic" number."""
+        section_idx, block_idx, pos = find_random_opcode(container, push_opcodes)
+        if section_idx == -1:
+            raise MutateError("No section found")
+
+        push_value: bytes = random.choice(self.magic_numbers)
+
+        code_point = container.code_sections[section_idx].blocks[block_idx].code_points[pos]
+        code_point.immediate = push_value
+
+        container.code_sections[section_idx].blocks[block_idx].code_points[pos] = optimize_push(
+            code_point
+        )
+
+        return container, "set push magic value section %d block %d pos %d" % (
+            section_idx,
+            block_idx,
+            pos,
+        )
+
+
+default_strategies = [PushPopMutation, ReplacePushWithAddress, ReplacePushWithRandom, ReplacePushWithMagic]
