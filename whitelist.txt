@@ -557,6 +557,7 @@ prevrandao
 pytestconfig
 pytester
 pytestmark
+randbytes
 readline
 regexes
 removesuffix
