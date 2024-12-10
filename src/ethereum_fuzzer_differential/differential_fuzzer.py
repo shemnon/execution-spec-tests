@@ -147,7 +147,7 @@ class DifferentialFuzzer:
 
     def cleanup_round(self, step_num: int):
         """Removes the corpus files from the current round."""
-        print("Finised step %d/%d..." % (step_num, self.steps[-1]))
+        print("Finished step %d/%d..." % (step_num, self.steps[-1]))
         for f in glob.glob(
             os.path.join(self.work_dir, "%s_%s_*.json" % (self.test_prefix, step_num))
         ):
