@@ -34,9 +34,11 @@ class DifferentialFuzzer:
 
     corpus: List[StateFixtures]
     work_dir: str
+    cleanup_tests: bool
     steps: range
     runtest_binary: str
     client_list: Dict[str, str]
+    skip_trace: bool
     test_prefix: str
     mutator: StateTestMutator
 
@@ -44,16 +46,20 @@ class DifferentialFuzzer:
         self,
         corpus: List[StateFixtures],
         work_dir: str,
+        cleanup_tests: bool,
         runtest_binary: str,
         client_list: Dict[str, str],
+        skip_trace:bool,
         max_gas: int,
         steps: range,
         test_prefix: str = "mutated_test",
     ) -> None:
         self.corpus = corpus
         self.work_dir = work_dir
+        self.cleanup_tests = cleanup_tests
         self.runtest_binary = runtest_binary
         self.client_list = client_list
+        self.skip_trace = skip_trace
         self.steps = steps
         self.test_prefix = test_prefix
         self.mutator = StateTestMutator(max_gas, default_strategies)
@@ -70,7 +76,7 @@ class DifferentialFuzzer:
         self.mutate_corpus()
         self.write_corpus(step_num)
         clean_run: bool = self.execute_runtest(step_num)
-        self.cleanup_round(step_num)
+        self.finish_round(step_num)
         return clean_run
 
     def mutate_corpus(self):
@@ -117,6 +123,7 @@ class DifferentialFuzzer:
             *[c for cc in clients for c in cc],
             "--outdir",
             output_dir,
+            *(["--skiptrace"] if self.skip_trace else []),
             os.path.join(self.work_dir, "{}_{}_*.json".format(self.test_prefix, step_num)),
         ]
         with open(os.path.join(output_dir, "runtest-args.txt"), "w") as f:
@@ -145,13 +152,14 @@ class DifferentialFuzzer:
 
         return "Consensus error" not in result.stdout
 
-    def cleanup_round(self, step_num: int):
-        """Removes the corpus files from the current round."""
+    def finish_round(self, step_num: int):
+        """Logs completion and performs configured cleanup steps."""
         print("Finished step %d/%d..." % (step_num, self.steps[-1]))
-        for f in glob.glob(
-            os.path.join(self.work_dir, "%s_%s_*.json" % (self.test_prefix, step_num))
-        ):
-            os.remove(f)
+        if self.cleanup_tests:
+            for f in glob.glob(
+                os.path.join(self.work_dir, "%s_%s_*.json" % (self.test_prefix, step_num))
+            ):
+                os.remove(f)
 
 
 def build_corpus(corpus_dir: str):
