@@ -34,7 +34,8 @@ from ethereum_fuzzer_differential.differential_fuzzer import DifferentialFuzzer,
     "cleanup_tests",
     type=bool,
     default=True,
-    help="Cleanup generated tests that are uninteresting from the work dir. Step summaries are unaffected",
+    help="Cleanup generated tests that are uninteresting from the work dir."
+    "Step summaries are unaffected",
 )
 @click.option(
     "--runtest",
@@ -57,7 +58,8 @@ from ethereum_fuzzer_differential.differential_fuzzer import DifferentialFuzzer,
     type=bool,
     required=False,
     default=False,
-    help="Skip execution trace comparison and rely on state roots.\nFaster, more compatible EVMs, but less coverage.",
+    help="Skip execution trace comparison and rely on state roots."
+    "\nFaster, more compatible EVMs, but less coverage.",
 )
 @click.option(
     "--max-gas",
@@ -100,7 +102,14 @@ def differential_fuzzing(
     corpus = build_corpus(corpus_dir)
 
     diff_fuzz = DifferentialFuzzer(
-        corpus, work_dir, cleanup_tests, runtest_binary, clients, skip_trace, max_gas, steps=range(step_num, step_num + steps)
+        corpus,
+        work_dir,
+        cleanup_tests,
+        runtest_binary,
+        clients,
+        skip_trace,
+        max_gas,
+        steps=range(step_num, step_num + steps),
     )
     diff_fuzz.run_steps()
 

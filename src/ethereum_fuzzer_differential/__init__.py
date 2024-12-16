@@ -12,5 +12,7 @@ The following bugs were found using the differential fuzzer
    Test [PR #989](https://github.com/ethereum/execution-spec-tests/pull/989)
 2. Geth DATACOPY values could overflow uint64 (found with ReplacePushWithMagic)
    Test [PR #1020](https://github.com/ethereum/execution-spec-tests/pull/1020)
+3. Nethermind had RIP-7212 p256verify activated in Prague.
+   Test [PR #1021](https://github.com/ethereum/execution-spec-tests/pull/1021)
 
 """
