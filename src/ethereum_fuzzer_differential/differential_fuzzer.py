@@ -12,7 +12,7 @@ from typing import Dict, List
 
 from ethereum_clis.file_utils import write_json_file
 from ethereum_fuzzer_differential.mutator import MutateError, StateTestMutator
-from ethereum_fuzzer_differential.strategies.basic_strategies import default_strategies
+from ethereum_fuzzer_differential.strategies.defaults import default_strategies
 from ethereum_test_fixtures.file import Fixtures, StateFixtures
 from ethereum_test_fixtures.state import Fixture as StateFixture
 
@@ -49,7 +49,7 @@ class DifferentialFuzzer:
         cleanup_tests: bool,
         runtest_binary: str,
         client_list: Dict[str, str],
-        skip_trace:bool,
+        skip_trace: bool,
         max_gas: int,
         steps: range,
         test_prefix: str = "mutated_test",

@@ -6,65 +6,14 @@ import random
 from argparse import ArgumentError
 from typing import Any, Dict, Tuple
 
-from ethereum_fuzzer_basicblocks.basicblocks import (
-    BasicBlock,
-    BasicBlockContainer,
-    BasicBlockSection,
-    CodePoint,
-)
+from ethereum_fuzzer_basicblocks.basicblocks import BasicBlockContainer, CodePoint
 from ethereum_fuzzer_differential.mutator import EOFMutator, MutateError
+from ethereum_fuzzer_differential.strategies.helpers import (
+    find_random_opcode,
+    random_codepoint_index,
+)
 from ethereum_test_tools import Opcodes as Op
 from ethereum_test_vm.opcode import push_opcodes, valid_eof_opcodes_by_num
-
-
-def random_codepoint_index(container: BasicBlockContainer) -> Tuple[int, int, int]:
-    """Returns a section/block/pos tuple of a randomish code point. Nota  perfect distribution."""
-    section = random.randint(0, len(container.code_sections) - 1)
-    block = random.randint(0, len(container.code_sections[section].blocks) - 1)
-    pos = random.randint(0, len(container.code_sections[section].blocks[block].code_points) - 1)
-    return section, block, pos
-
-
-def find_random_opcode(container: BasicBlockContainer, opcodes: list[Op]) -> Tuple[int, int, int]:
-    """Pick a section/block/pos tuple containing one of the set of opcodes, or -1/-1/-1"""
-    # pick point
-    section, block, pos = random_codepoint_index(container)
-    current_section: BasicBlockSection = container.code_sections[section]
-    current_block: BasicBlock = current_section.blocks[block]
-    # first search from point to end of block
-    for next_pos in range(pos, len(current_block.code_points)):
-        current_point: CodePoint = current_block.code_points[next_pos]
-        if current_point.opcode in opcodes:
-            return section, block, next_pos
-    #  next search following block to end of section
-    for next_block in range(block + 1, len(current_section.blocks)):
-        current_block = current_section.blocks[next_block]
-        for next_pos in range(pos, len(current_block.code_points)):
-            current_point = current_block.code_points[next_pos]
-            if current_point.opcode in opcodes:
-                return section, next_block, next_pos
-    # next search following sections to end of container
-    for next_section in range(section + 1, len(container.code_sections)):
-        current_section = container.code_sections[next_section]
-        for next_block in range(block + 1, len(current_section.blocks)):
-            current_block = current_section.blocks[next_block]
-            for next_pos in range(pos, len(current_block.code_points)):
-                current_point = current_block.code_points[next_pos]
-                if current_point.opcode in opcodes:
-                    return next_section, next_block, next_pos
-    # search from start to section we started at, inclusive.
-    # there may be some overlap with initial search area, but that will only occur if we
-    # fail to find, then we will just double search part of a section and fail to find.
-    for next_section in range(0, section + 1):
-        current_section = container.code_sections[next_section]
-        for next_block in range(0, len(current_section.blocks)):
-            current_block = current_section.blocks[next_block]
-            for next_pos in range(0, len(current_block.code_points)):
-                current_point = current_block.code_points[next_pos]
-                if current_point.opcode in opcodes:
-                    return next_section, next_block, next_pos
-    # no matching codes
-    return -1, -1, -1
 
 
 def optimize_push(code_point: CodePoint) -> CodePoint:
@@ -175,16 +124,20 @@ class ReplacePushWithRandom(EOFMutator):
 
 class ReplacePushWithMagic(EOFMutator):
     """
-    Picks a random push and replaces it with a "magic" number. Magic numbers tend to break things in
-    implementations and consist of things like int/unit boundaries, javascript maxes, and other
+    Picks a random push and replaces it with a "magic" number. Magic numbers tend to break things
+    in implementations and consist of things like int/unit boundaries, javascript maxes, and other
     numbers with "magical" or special handling in various languages or parts of the spec.
     """
-    magic_numbers = [n.to_bytes(32, byteorder="big") for n in [
-        *[2 ** x - 1 for x in [4, 7, 8, 10, 15, 16, 31, 32, 53, 63, 64, 256]],
-        *[2 ** x for x in [4, 7, 8, 10, 15, 16, 31, 32, 53, 63, 64]],
-        17,
-        1025,
-    ]]
+
+    magic_numbers = [
+        n.to_bytes(32, byteorder="big")
+        for n in [
+            *[2**x - 1 for x in [4, 7, 8, 10, 15, 16, 31, 32, 53, 63, 64, 256]],
+            *[2**x for x in [4, 7, 8, 10, 15, 16, 31, 32, 53, 63, 64]],
+            17,
+            1025,
+        ]
+    ]
 
     def __init__(self):
         super().__init__(10)
@@ -213,4 +166,9 @@ class ReplacePushWithMagic(EOFMutator):
         )
 
 
-default_strategies = [PushPopMutation, ReplacePushWithAddress, ReplacePushWithRandom, ReplacePushWithMagic]
+push_strategies = [
+    PushPopMutation,
+    ReplacePushWithAddress,
+    ReplacePushWithMagic,
+    ReplacePushWithRandom,
+]
