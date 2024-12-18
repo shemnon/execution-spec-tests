@@ -15,11 +15,17 @@ from ethereum_fuzzer_basicblocks.basicblocks import (
 from ethereum_test_tools import Opcodes as Op
 
 
-def random_codepoint_index(container: BasicBlockContainer) -> Tuple[int, int, int]:
+def random_codepoint_index(
+    container: BasicBlockContainer, for_code_point_insertion: bool = False
+) -> Tuple[int, int, int]:
     """Returns a section/block/pos tuple of a randomish code point. Nota  perfect distribution."""
     section = random.randint(0, len(container.code_sections) - 1)
     block = random.randint(0, len(container.code_sections[section].blocks) - 1)
-    pos = random.randint(0, len(container.code_sections[section].blocks[block].code_points) - 1)
+    pos = random.randint(
+        0,
+        len(container.code_sections[section].blocks[block].code_points)
+        - (0 if for_code_point_insertion else 1),
+    )
     return section, block, pos
 
 

@@ -4,6 +4,7 @@ Types for EOF Fuzzing
 from abc import abstractmethod
 from typing import Tuple
 
+from ethereum_test_vm import Bytecode
 from ethereum_test_vm import Opcodes as Op
 from ethereum_test_vm.opcode import valid_eof_opcodes_by_num
 
@@ -33,12 +34,14 @@ class CodePoint:
     stack_min: int
     stack_max: int
 
-    def __init__(self, opcode: Op, immediate: bytes = bytes()) -> None:
+    def __init__(
+        self, opcode: Op, immediate: bytes = bytes(), *, stack_min=1025, stack_max=0
+    ) -> None:
         """Create the code point, possibly with an immediate"""
         self.opcode = opcode
         self.immediate = immediate
-        self.stack_min = 1025
-        self.stack_max = 0
+        self.stack_min = stack_min
+        self.stack_max = stack_max
 
     def __str__(self) -> str:
         """A string representation that is opcode + immediate"""
@@ -98,7 +101,7 @@ class CodePoint:
 class BasicBlock:
     """A run of multiple code points with no branching or termination"""
 
-    labels: str
+    label: str
     code_points: list[CodePoint]
     successors: list[str]
     offset: int
@@ -111,6 +114,14 @@ class BasicBlock:
         self.successors = []
         self.offset = 0
 
+    def append_bytecode(self, bytecode: Bytecode):
+        """Append bytecode to the code block.  Also resets the code size memento."""
+        self._code_size = None
+        for b in bytes(bytecode):
+            opcode = valid_eof_opcodes_by_num[b]
+            if opcode is not None:
+                self.code_points.append(CodePoint(opcode))
+
     def append_code_point(self, code_point: CodePoint):
         """Append a code point to the code block.  Also resets the code size memento."""
         self._code_size = None
@@ -121,10 +132,21 @@ class BasicBlock:
         self._code_size = None
         self.code_points.insert(index, code_point)
 
-    def remove_code_point(self, index: int):
-        """Inserts a code point into the code block.  Also resets the code size memento."""
+    def remove_code_point(self, index: int) -> CodePoint:
+        """
+        Removes a code point from the code block and returns it.
+        Also resets the code size memento.
+        """
         self._code_size = None
-        self.code_points.pop(index)
+        return self.code_points.pop(index)
+
+    def pop_code_point(self) -> CodePoint:
+        """
+        Removes the last code point from the code block and returns it.
+        Also resets the code size memento.
+        """
+        self._code_size = None
+        return self.code_points.pop()
 
     def code_size(self):
         """Returns the number of bytes this code block would occupy"""
@@ -295,7 +317,10 @@ class BasicBlockSection:
         offset_by_id = {b.label: b.offset for b in self.blocks}
         offset = 0
         for block in self.blocks:
-            offset += block.code_size()
+            size = block.code_size()
+            if size == 0:
+                continue
+            offset += size
             # if a jump exists they are the last code point in each block
             code_point = block.code_points[-1]
             opcode = code_point.opcode
