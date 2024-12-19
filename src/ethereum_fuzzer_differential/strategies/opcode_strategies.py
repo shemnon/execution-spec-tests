@@ -80,6 +80,7 @@ class DeleteOpcodeBalanced(EOFMutator):
 eof_insertion_opcodes = list(
     valid_eof_opcodes
     - {
+        Op.BLOCKHASH, # This is its own special hot mess, pre and post EIP-2935
         Op.STOP,
         Op.POP,
         Op.PUSH0,
@@ -199,6 +200,23 @@ class InsertSimpleOpcodeBalanced(EOFMutator):
             pos,
         )
 
+
+# TODO DATALOAD opcodes
+#  Determine the load scope
+#  make sure mandatoy data is there (DATALOADN)
+#  maybe add non-mandatory data
+
+#TODO JUMP Opcodes ;P
+
+#TODO code section delete/add/call/jump
+
+#TODO DUPN/SWAPN/EXCHANGE (like insert balanced, but with immediate values)
+
+#TODO contract calls
+
+#TODO CREATE / RETURNCONTRACT :P
+
+#TODO swap (no insert?) terminal opcodes (STOP, RETURN, REVERT, INVALID)
 
 opcode_strategies = [
     InsertSimpleOpcodeBalanced,
