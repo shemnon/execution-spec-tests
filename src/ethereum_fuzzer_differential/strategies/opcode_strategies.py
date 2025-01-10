@@ -1,6 +1,4 @@
-"""
-A mutator that adds a PUSH0/POP pair.
-"""
+"""A mutator that adds a PUSH0/POP pair."""
 
 import random
 from typing import Any, Dict, Tuple
@@ -13,7 +11,7 @@ from ethereum_test_vm.opcode import push_opcodes, valid_eof_opcodes
 
 
 def flatten_block(block: BasicBlock) -> BasicBlock:
-    """Removes all adjacent POP/PUSH and PUSH/POP pairs"""
+    """Remove all adjacent POP/PUSH and PUSH/POP pairs."""
     flat_block = BasicBlock(block.label)
     flat_block.successors += block.successors
     flat_block.offset = block.offset
@@ -37,15 +35,16 @@ def flatten_block(block: BasicBlock) -> BasicBlock:
 
 
 class DeleteOpcodeBalanced(EOFMutator):
-    """Deletes an opcode, ad adds POPs/PUSH0 as needed to balance out"""
+    """Delete an opcode, and add POPs/PUSH0 as needed to balance out."""
 
-    def __init__(self):
-        super().__init__(1)
+    def __init__(self, priority: int = 1):
+        """Create the strategy with a default priority of 1."""
+        super().__init__(priority)
 
     def mutate(
         self, container: BasicBlockContainer, context: Dict[str, Any]
     ) -> Tuple[BasicBlockContainer, str]:
-        """Adds PUSH0/POP at some random point in a random section"""
+        """Add a PUSH0/POP at some random point in a random section."""
         section_idx, block_idx, pos = random_codepoint_index(container)
         section = container.code_sections[section_idx]
         block = section.blocks[block_idx]
@@ -57,10 +56,10 @@ class DeleteOpcodeBalanced(EOFMutator):
 
         net_stack = code_point.opcode.pushed_stack_items - code_point.opcode.popped_stack_items
         if net_stack > 0:
-            for e in range(net_stack):
+            for _ in range(net_stack):
                 block.append_code_point(CodePoint(Op.PUSH0))
         elif net_stack < 0:
-            for e in range(-net_stack):
+            for _ in range(-net_stack):
                 block.append_code_point(CodePoint(Op.POP))
 
         if len(block.code_points) == 0:
@@ -80,7 +79,7 @@ class DeleteOpcodeBalanced(EOFMutator):
 eof_insertion_opcodes = list(
     valid_eof_opcodes
     - {
-        Op.BLOCKHASH, # This is its own special hot mess, pre and post EIP-2935
+        Op.BLOCKHASH,  # This is its own special hot mess, pre and post EIP-2935
         Op.STOP,
         Op.POP,
         Op.PUSH0,
@@ -142,15 +141,16 @@ eof_insertion_opcodes = list(
 
 
 class InsertSimpleOpcodeBalanced(EOFMutator):
-    """Inserts a simple opcode.  Pushing and popping as needed"""
+    """Insert a simple opcode.  Pushing and popping as needed."""
 
-    def __init__(self):
-        super().__init__(1)
+    def __init__(self, priority: int = 1):
+        """Create the strategy with a default priority of 1."""
+        super().__init__(priority)
 
     def mutate(
         self, container: BasicBlockContainer, context: Dict[str, Any]
     ) -> Tuple[BasicBlockContainer, str]:
-        """Inserts a simple opcode.  Pushing and popping as needed"""
+        """Insert a simple opcode, Pushing and popping as needed."""
         section_idx, block_idx, pos = random_codepoint_index(
             container, for_code_point_insertion=True
         )
@@ -206,17 +206,17 @@ class InsertSimpleOpcodeBalanced(EOFMutator):
 #  make sure mandatoy data is there (DATALOADN)
 #  maybe add non-mandatory data
 
-#TODO JUMP Opcodes ;P
+# TODO JUMP Opcodes ;P
 
-#TODO code section delete/add/call/jump
+# TODO code section delete/add/call/jump
 
-#TODO DUPN/SWAPN/EXCHANGE (like insert balanced, but with immediate values)
+# TODO DUPN/SWAPN/EXCHANGE (like insert balanced, but with immediate values)
 
-#TODO contract calls
+# TODO contract calls
 
-#TODO CREATE / RETURNCONTRACT :P
+# TODO CREATE / RETURNCONTRACT :P
 
-#TODO swap (no insert?) terminal opcodes (STOP, RETURN, REVERT, INVALID)
+# TODO swap (no insert?) terminal opcodes (STOP, RETURN, REVERT, INVALID)
 
 opcode_strategies = [
     InsertSimpleOpcodeBalanced,

@@ -1,6 +1,4 @@
-"""
-Collections of "default" strategies
-"""
+"""Collection of "default" strategies."""
 
 from typing import List, Type
 

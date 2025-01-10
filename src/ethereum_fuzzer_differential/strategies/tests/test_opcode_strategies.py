@@ -1,6 +1,5 @@
-"""
-Tests for opcode strategies
-"""
+"""Tests for opcode strategies."""
+
 import pytest
 
 from ethereum_fuzzer_basicblocks.basicblocks import BasicBlock
@@ -47,7 +46,7 @@ from ethereum_test_vm.opcode import valid_eof_opcodes_by_num
     ],
 )
 def test_flatten_block(initial: Bytecode, expected: Bytecode):
-    """Tests flatting of blocks"""
+    """Tests flatting of blocks."""
     block = BasicBlock("test")
     block.append_bytecode(initial)
     assert flatten_block(block).bytecode() == expected

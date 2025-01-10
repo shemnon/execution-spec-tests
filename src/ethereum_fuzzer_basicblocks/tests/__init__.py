@@ -1,3 +1,1 @@
-"""
-Tests for code blocks generation
-"""
+"""Tests for code blocks generation."""

@@ -1,6 +1,5 @@
-"""
-//FIXME
-"""
+"""The main differential fuzzer executor."""
+
 import glob
 import os
 import re
@@ -18,19 +17,17 @@ from ethereum_test_fixtures.state import Fixture as StateFixture
 
 
 def build_state_fixtures_context(state: StateFixtures):
-    """Extracts all the addresses into a context map."""
+    """Extract all the addresses into a context map."""
     test = next(iter(state.items()))
     fixture = test[1]
     addresses = []
-    for (addr, acct) in fixture.pre.root.items():
+    for addr, _ in fixture.pre.root.items():
         addresses.append(addr)
     return {"addresses": sorted(addresses)}
 
 
 class DifferentialFuzzer:
-    """
-    Holds the execution state and logic of the differential fuzzer
-    """
+    """Holds the execution state and logic of the differential fuzzer."""
 
     corpus: List[StateFixtures]
     work_dir: str
@@ -54,6 +51,7 @@ class DifferentialFuzzer:
         steps: range,
         test_prefix: str = "mutated_test",
     ) -> None:
+        """Create the differential fuzzer executor."""
         self.corpus = corpus
         self.work_dir = work_dir
         self.cleanup_tests = cleanup_tests
@@ -80,7 +78,7 @@ class DifferentialFuzzer:
         return clean_run
 
     def mutate_corpus(self):
-        """Mutates the corpus."""
+        """Mutate the corpus."""
         new_corpus = []
         for state in self.corpus:
             context = build_state_fixtures_context(state)
@@ -99,7 +97,7 @@ class DifferentialFuzzer:
         self.corpus = new_corpus
 
     def write_corpus(self, step_num: int):
-        """Writes the mutated corpus for the current round to the working directory."""
+        """Write the mutated corpus for the current round to the working directory."""
         for idx, state_test in enumerate(self.corpus):
             test = {
                 test_name: test_body.json_dict_with_info()
@@ -113,7 +111,7 @@ class DifferentialFuzzer:
             )
 
     def execute_runtest(self, step_num: int):
-        """Executes goevmlab's runtest against the working files for the current round."""
+        """Execute goevmlab's runtest against the working files for the current round."""
         clients = [["--" + client[0], client[1]] for client in self.client_list]
         output_dir = os.path.join(self.work_dir, "runtest_%s_%s" % (self.test_prefix, step_num))
         if not os.path.exists(output_dir):
@@ -132,9 +130,9 @@ class DifferentialFuzzer:
         try:
             result = subprocess.run(args, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
-            raise Exception("evm process unexpectedly returned a non-zero status code: " f"{e}.")
+            raise Exception("evm process unexpectedly returned a non-zero status code") from e
         except Exception as e:
-            raise Exception(f"Unexpected exception calling evm tool: {e}.")
+            raise Exception("Unexpected exception calling evm tool") from e
 
         with open(os.path.join(output_dir, "runtest-out.txt"), "w") as f:
             f.write(result.stdout)
@@ -153,7 +151,7 @@ class DifferentialFuzzer:
         return "Consensus error" not in result.stdout
 
     def finish_round(self, step_num: int):
-        """Logs completion and performs configured cleanup steps."""
+        """Log completion and performs configured cleanup steps."""
         print("Finished step %d/%d..." % (step_num, self.steps[-1]))
         if self.cleanup_tests:
             for f in glob.glob(
@@ -163,15 +161,15 @@ class DifferentialFuzzer:
 
 
 def build_corpus(corpus_dir: str):
-    """Builds and edits the corpus files from a seed directory."""
+    """Build and edits the corpus files from a seed directory."""
     corpus = []
-    for subdir, dirs, files in os.walk(corpus_dir):
+    for subdir, _, files in os.walk(corpus_dir):
         for file in files:
             try:
                 state_tests = Fixtures.from_file(
                     Path(os.path.join(subdir, file)), fixture_format=StateFixture
                 )
-                for (name, state_test) in state_tests.root.items():
+                for _, state_test in state_tests.root.items():
                     # re-write info
                     state_test.info = {
                         "comment": "diff_fuzz corpus file",

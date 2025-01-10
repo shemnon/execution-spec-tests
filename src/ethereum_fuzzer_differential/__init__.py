@@ -1,5 +1,5 @@
 """
-Execution loop for EOF differential fuzzing
+Execution loop for EOF differential fuzzing.
 
 
 Trophies
@@ -17,8 +17,10 @@ The following bugs were found using the differential fuzzer
 4. Besu created a "ghost" account when calling a non-existent account that prevented a subsequent
    value-bearing EXTCALL from being charged for account creation.
    Test [PR #1025](https://github.com/ethereum/execution-spec-tests/pull/1025)
-5. Evmone does not have a fully functional expmod precompile. Clients under test need to be
+
+The following configuration issues will be detected by fuzzing
+1. Evmone does not have a fully functional expmod precompile. Clients under test need to be
    configured to use [an
    external library.](https://github.com/ethereum/evmone/blob/master/README.md?plain=1#L100-L102)
-
+2. Besu uses the old pre-EEST methods for BLOCKHASH, resulting in failed traces.
 """
