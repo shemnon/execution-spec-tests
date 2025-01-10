@@ -1,6 +1,4 @@
-"""
-A mutator that adds a PUSH0/POP pair.
-"""
+"""A mutator that adds a PUSH0/POP pair."""
 
 import random
 from argparse import ArgumentError
@@ -17,7 +15,7 @@ from ethereum_test_vm.opcode import push_opcodes, valid_eof_opcodes_by_num
 
 
 def optimize_push(code_point: CodePoint) -> CodePoint:
-    """Ensures all push opcodes have enough size for the immediate they contain"""
+    """Ensure all push opcodes have enough size for the immediate they contain."""
     op_num = code_point.opcode.int()
     if Op.PUSH0.int() <= op_num <= Op.PUSH32.int():
         immediate = code_point.immediate
@@ -35,15 +33,16 @@ def optimize_push(code_point: CodePoint) -> CodePoint:
 
 
 class PushPopMutation(EOFMutator):
-    """Adds PUSH0/POP at some random point in a random section"""
+    """Add PUSH0/POP at some random point in a random section."""
 
-    def __init__(self):
-        super().__init__(1)
+    def __init__(self, priority: int = 1):
+        """Create the strategy with a default priority of 1."""
+        super().__init__(priority)
 
     def mutate(
         self, container: BasicBlockContainer, context: Dict[str, Any]
     ) -> Tuple[BasicBlockContainer, str]:
-        """Adds PUSH0/POP at some random point in a random section"""
+        """Add s PUSH0/POP at some random point in a random section."""
         section_idx, block_idx, pos = random_codepoint_index(container)
         section = container.code_sections[section_idx]
         block = section.blocks[block_idx]
@@ -59,15 +58,16 @@ class PushPopMutation(EOFMutator):
 
 
 class ReplacePushWithAddress(EOFMutator):
-    """Picks a random push and replaces it with an address in the context"""
+    """Pick a random push and replaces it with an address in the context."""
 
-    def __init__(self):
-        super().__init__(1)
+    def __init__(self, priority: int = 1):
+        """Create the strategy with a default priority of 1."""
+        super().__init__(priority)
 
     def mutate(
         self, container: BasicBlockContainer, context: Dict[str, Any]
     ) -> Tuple[BasicBlockContainer, str]:
-        """Picks a random push and replaces it with an address in the context"""
+        """Pick a random push and replaces it with an address in the context."""
         section_idx, block_idx, pos = find_random_opcode(container, push_opcodes)
         address = random.choice(context["addresses"])
 
@@ -89,17 +89,21 @@ class ReplacePushWithAddress(EOFMutator):
 
 
 class ReplacePushWithRandom(EOFMutator):
-    """Picks a random push and replaces it with a random number, shorter numbers more frequently"""
+    """
+    Picks a random push and replaces it with a random number. Numbers wth fewer bytes are chosen
+    more frequently.
+    """
 
     push_size_distribution = [*[1] * 6, *[2] * 5, *[4] * 4, *[8] * 3, *[16] * 2, 32, *range(0, 32)]
 
-    def __init__(self):
-        super().__init__(10)
+    def __init__(self, priority: int = 10):
+        """Create the  strategy with a default priority of 10."""
+        super().__init__(priority)
 
     def mutate(
         self, container: BasicBlockContainer, context: Dict[str, Any]
     ) -> Tuple[BasicBlockContainer, str]:
-        """Mutates a Push with a random number."""
+        """Mutate a Push with a random number."""
         section_idx, block_idx, pos = find_random_opcode(container, push_opcodes)
         if section_idx == -1:
             raise MutateError("No section found")
@@ -139,13 +143,14 @@ class ReplacePushWithMagic(EOFMutator):
         ]
     ]
 
-    def __init__(self):
-        super().__init__(10)
+    def __init__(self, priority: int = 10):
+        """Create the strategy with a default priority of 10."""
+        super().__init__(priority)
 
     def mutate(
         self, container: BasicBlockContainer, context: Dict[str, Any]
     ) -> Tuple[BasicBlockContainer, str]:
-        """Mutates a push to a "magic" number."""
+        """Mutate a push to a "magic" number."""
         section_idx, block_idx, pos = find_random_opcode(container, push_opcodes)
         if section_idx == -1:
             raise MutateError("No section found")

@@ -1,7 +1,4 @@
-"""
-Runs differential fuzzing
-"""
-
+"""Runs differential fuzzing."""
 
 from typing import Dict
 
@@ -96,9 +93,7 @@ def differential_fuzzing(
     steps: int,
     step_num: int,
 ):
-    """
-    The CLI wrapper run differential fuzzing
-    """
+    """Create the CLI wrapper that runs differential fuzzing."""
     corpus = build_corpus(corpus_dir)
 
     diff_fuzz = DifferentialFuzzer(

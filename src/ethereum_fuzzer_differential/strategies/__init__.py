@@ -1,3 +1,1 @@
-"""
-mutation strategies
-"""
+"""Mutation strategies."""

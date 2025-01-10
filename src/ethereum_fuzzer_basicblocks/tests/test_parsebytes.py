@@ -1,6 +1,4 @@
-"""
-Tests parsing EOF bytestreams into code blocks
-"""
+"""Tests parsing EOF bytestreams into code blocks."""
 
 import pytest
 
@@ -83,29 +81,27 @@ sample_contracts = [
 
 
 @pytest.mark.parametrize(
-    "input",
+    "input_data",
     sample_contracts,
 )
-def test_parse_bytes(input: str):
-    """
-    Simple round trip test for parsebytes
-    """
-    container = BasicBlockContainer(bytes.fromhex(input))
+def test_parse_bytes(input_data):
+    """Simple round trip test for parsebytes."""
+    container = BasicBlockContainer(bytes.fromhex(input_data))
     assert container is not None
 
     encoded = container.encode()
 
     actual = encoded.hex()
-    assert input.startswith(actual)
+    assert input_data.startswith(actual)
 
 
 @pytest.mark.parametrize(
-    "input",
+    "input_data",
     sample_contracts,
 )
-def test_insert_opcode(input: str):
-    """Insert a push/pop in every block to test reconciliation"""
-    container = BasicBlockContainer(bytes.fromhex(input))
+def test_insert_opcode(input_data):
+    """Insert a push/pop in every block to test reconciliation."""
+    container = BasicBlockContainer(bytes.fromhex(input_data))
     assert container is not None
 
     for section in container.code_sections:
@@ -116,18 +112,16 @@ def test_insert_opcode(input: str):
 
 
 @pytest.mark.parametrize(
-    "input",
+    "input_data",
     sample_contracts,
 )
-def test_reconcile(input: str):
-    """
-    Simple round trip test for parsebytes
-    """
-    container = BasicBlockContainer(bytes.fromhex(input))
+def test_reconcile(input_data: str):
+    """Simple round trip test for parsebytes and reconcile_bytecode."""
+    container = BasicBlockContainer(bytes.fromhex(input_data))
     assert container is not None
 
     container.reconcile_bytecode()
 
     encoded = container.encode()
     actual = encoded.hex()
-    assert input.startswith(actual)
+    assert input_data.startswith(actual)

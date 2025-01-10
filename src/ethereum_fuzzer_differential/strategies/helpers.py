@@ -1,7 +1,4 @@
-"""
-Helper functions for mutation stragegies
-"""
-
+"""Helper functions for mutation strategies."""
 
 import random
 from typing import Tuple
@@ -18,7 +15,7 @@ from ethereum_test_tools import Opcodes as Op
 def random_codepoint_index(
     container: BasicBlockContainer, for_code_point_insertion: bool = False
 ) -> Tuple[int, int, int]:
-    """Returns a section/block/pos tuple of a randomish code point. Nota  perfect distribution."""
+    """Return a section/block/pos tuple of a randomish code point. Nota  perfect distribution."""
     section = random.randint(0, len(container.code_sections) - 1)
     block = random.randint(0, len(container.code_sections[section].blocks) - 1)
     pos = random.randint(
@@ -30,7 +27,7 @@ def random_codepoint_index(
 
 
 def find_random_opcode(container: BasicBlockContainer, opcodes: list[Op]) -> Tuple[int, int, int]:
-    """Pick a section/block/pos tuple containing one of the set of opcodes, or -1/-1/-1"""
+    """Pick a section/block/pos tuple containing one of the set of opcodes, or -1/-1/-1."""
     # pick point
     section, block, pos = random_codepoint_index(container)
     current_section: BasicBlockSection = container.code_sections[section]

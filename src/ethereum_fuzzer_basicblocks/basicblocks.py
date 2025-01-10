@@ -1,6 +1,5 @@
-"""
-Types for EOF Fuzzing
-"""
+"""Types for EOF Fuzzing."""
+
 from abc import abstractmethod
 from typing import Tuple
 
@@ -10,24 +9,23 @@ from ethereum_test_vm.opcode import valid_eof_opcodes_by_num
 
 
 def concat_bytes(bytes_list: list[bytes]) -> bytes:
-    """More readable form of byte concatenation"""
+    """More readable form of byte concatenation."""
     return b"".join(bytes_list)
 
 
 class InvalidEOFCodeError(Exception):
     """
-    Invalid EOF code error raised when attempting to parse an EOF container with an invalid opcode.
+    Invalid EOF code error raised when attempting to parse an EOF container that contains an
+    invalid opcode.
     """
 
     def __init__(self, message):
-        """Exception raised when the EOF container has invalid code"""
+        """Exception raised when the EOF container has invalid code."""
         super().__init__(message)
 
 
 class CodePoint:
-    """
-    An opcode and associated metadata
-    """
+    """An opcode and associated metadata."""
 
     opcode: Op
     immediate: bytes
@@ -37,14 +35,14 @@ class CodePoint:
     def __init__(
         self, opcode: Op, immediate: bytes = bytes(), *, stack_min=1025, stack_max=0
     ) -> None:
-        """Create the code point, possibly with an immediate"""
+        """Create the code point, possibly with an immediate."""
         self.opcode = opcode
         self.immediate = immediate
         self.stack_min = stack_min
         self.stack_max = stack_max
 
     def __str__(self) -> str:
-        """A string representation that is opcode + immediate"""
+        """Produce a string representation that is opcode + immediate."""
         return "%02x%s[%d,%d]" % (
             bytes(self.opcode)[0],
             "" if self.immediate is None else self.immediate.hex(),
@@ -53,7 +51,7 @@ class CodePoint:
         )
 
     def immediate_signed(self) -> int:
-        """Convert the immediate value to signed value"""
+        """Convert the immediate value to signed value."""
         return (
             0
             if self.immediate is None
@@ -61,17 +59,17 @@ class CodePoint:
         )
 
     def immediate_unsigned(self) -> int:
-        """Convert the immediate value to unsigned value"""
+        """Convert the immediate value to unsigned value."""
         return (
             0 if self.immediate is None else int.from_bytes(bytes(self.immediate), byteorder="big")
         )
 
     def immediate_byte(self) -> int:
-        """Converts the first byte of the immediate value to unsigned value"""
+        """Convert the first byte of the immediate value to unsigned value."""
         return int(self.immediate[0])
 
     def rjump_vector(self) -> list[int]:
-        """Calculate the RJUMP vectors from the immediate data"""
+        """Calculate the RJUMP vectors from the immediate data."""
         result = []
         for i in range(self.immediate_byte() + 1):
             result.append(
@@ -80,26 +78,26 @@ class CodePoint:
         return result
 
     def enter_stack(self, stack_min: int, stack_max: int):
-        """Merges the existing stack minimums with a new min and max on opcode entry"""
+        """Merge the existing stack minimums with a new min and max on opcode entry."""
         self.stack_min = min(self.stack_min, stack_min)
         self.stack_max = max(self.stack_max, stack_max)
 
     def reset_stack(self):
-        """Set the stacka s though no calculations have been done"""
+        """Set the stacka s though no calculations have been done."""
         self.stack_min = 1025
         self.stack_max = 0
 
     def point_size(self) -> int:
-        """Calculates the number of bytes this code point occupies"""
+        """Calculate the number of bytes this code point occupies."""
         return 1 + len(self.immediate)
 
     def bytecode(self) -> bytes:
-        """Converts the code point into the bytecode bytes it represents"""
+        """Convert the code point into the bytecode bytes it represents."""
         return self.opcode.int().to_bytes(1, byteorder="big") + self.immediate
 
 
 class BasicBlock:
-    """A run of multiple code points with no branching or termination"""
+    """A run of multiple code points with no branching or termination."""
 
     label: str
     code_points: list[CodePoint]
@@ -108,7 +106,7 @@ class BasicBlock:
     _code_size: int | None
 
     def __init__(self, label: str):
-        """Ceate a code block with a label"""
+        """Ceate a code block with a label."""
         self.label = label
         self.code_points = []
         self.successors = []
@@ -128,13 +126,13 @@ class BasicBlock:
         self.code_points.append(code_point)
 
     def insert_code_point(self, index: int, code_point: CodePoint):
-        """Inserts a code point into the code block.  Also resets the code size memento."""
+        """Insert a code point into the code block.  Also resets the code size memento."""
         self._code_size = None
         self.code_points.insert(index, code_point)
 
     def remove_code_point(self, index: int) -> CodePoint:
         """
-        Removes a code point from the code block and returns it.
+        Remove a code point from the code block and returns it.
         Also resets the code size memento.
         """
         self._code_size = None
@@ -142,28 +140,28 @@ class BasicBlock:
 
     def pop_code_point(self) -> CodePoint:
         """
-        Removes the last code point from the code block and returns it.
+        Remove the last code point from the code block and returns it.
         Also resets the code size memento.
         """
         self._code_size = None
         return self.code_points.pop()
 
     def code_size(self):
-        """Returns the number of bytes this code block would occupy"""
+        """Return the number of bytes this code block would occupy."""
         if self._code_size is None:
             self._code_size = sum([point.point_size() for point in self.code_points])
         return self._code_size
 
     def opcode_count(self):
-        """Returns the number of bytes this code block would occupy"""
+        """Return the number of bytes this code block would occupy."""
         return len(self.code_points)
 
     def bytecode(self) -> bytes:
-        """Returns the opcodes as bytes for this block of code"""
+        """Return the opcodes as bytes for this block of code."""
         return concat_bytes([code_point.bytecode() for code_point in self.code_points])
 
     def __str__(self) -> str:
-        """String representation of a code block"""
+        """Produce a string representation of a code block."""
         return (
             self.label
             + "/"
@@ -173,7 +171,7 @@ class BasicBlock:
 
 
 class BasicBlockSection:
-    """A Code Section composed of multiple code blocks"""
+    """A Code Section composed of multiple code blocks."""
 
     blocks: list[BasicBlock]
     inputs: int
@@ -181,14 +179,14 @@ class BasicBlockSection:
     max_stack: int
 
     def __init__(self, inputs, outputs, max_stack):
-        """Create the code sesction with inputs, outputs and maxStack"""
+        """Create the code sesction with inputs, outputs and maxStack."""
         self.blocks = []
         self.inputs = inputs
         self.outputs = outputs
         self.max_stack = max_stack
 
     def fill_blocks(self, code: bytes, container):
-        """Fill the blocks of the code section with the provided byecode"""
+        """Fill the blocks of the code section with the provided byecode."""
         opcodes: list[CodePoint | None] = [None] * len(code)
 
         breaks = self.calculate_block_breaks(code, opcodes)
@@ -196,15 +194,15 @@ class BasicBlockSection:
         self.create_code_blocks(breaks, opcodes)
 
     def calculate_block_breaks(self, code, opcodes) -> set[int]:
-        """Calculate where the code block breaks occur"""
+        """Calculate where the code block breaks occur."""
         index = 0
         breaks = {0}
         # Fill the code points with the opcodes
         while index < len(code):
-            opNum = code[index]
-            op = valid_eof_opcodes_by_num[opNum]
+            op_num = code[index]
+            op = valid_eof_opcodes_by_num[op_num]
             if op is None:
-                raise InvalidEOFCodeError("Unexpected OP Num %x" % opNum)
+                raise InvalidEOFCodeError("Unexpected OP Num %x" % op_num)
 
             code_point: CodePoint
             this_index = index
@@ -232,7 +230,7 @@ class BasicBlockSection:
         return breaks
 
     def calculate_stack_heights(self, opcodes, container):
-        """Calculate the stack heights of the code blocks"""
+        """Calculate the stack heights of the code blocks."""
         # Calculate the stack heights
         stack_min = self.inputs
         stack_max = self.inputs
@@ -304,7 +302,7 @@ class BasicBlockSection:
             self.blocks.append(code_block)  # needed?
 
     def reconcile_bytecode(self, code_sections):
-        """Reconcile the bytecode.  `code_sections` is needed for CALLF and JUMPF"""
+        """Reconcile the bytecode.  `code_sections` is needed for CALLF and JUMPF."""
         blocks_by_id = {b.label: b for b in self.blocks}
 
         # First update the "offset" so jumps can be re-coded
@@ -374,11 +372,14 @@ class BasicBlockSection:
         self.max_stack = section_max
 
     def bytecode(self) -> bytes:
-        """Returns the bytes that represents the opcodes of this code section"""
+        """Return the bytes that represents the opcodes of this code section."""
         return concat_bytes([block.bytecode() for block in self.blocks])
 
     def type_data(self) -> bytes:
-        """The bytes that represent this code section's type data (input/output/max stack)."""
+        """
+        Return the bytes that represent this code section's type data as an input/output/max_stack
+        tuple.
+        """
         return (
             self.inputs.to_bytes(1, byteorder="big")
             + self.outputs.to_bytes(1, byteorder="big", signed=False)
@@ -386,22 +387,22 @@ class BasicBlockSection:
         )
 
     def __str__(self) -> str:
-        """String representation of a code block as equals joined blocks"""
+        """Produce a string representation of a code block as equals joined blocks."""
         return "=".join([str(block) for block in self.blocks])
 
 
 def short_at(b: bytes, index: int) -> int:
-    """Helper function that gets a 2 byte unsigned value"""
+    """Read a 2 byte unsigned value."""
     return int.from_bytes(b[index : index + 2], byteorder="big")
 
 
 def read_header(b: bytes, index: int) -> Tuple[int, int, int]:
-    """Helper function that reads a 3 byte EOF header"""
+    """Read a 3 byte EOF header."""
     return (b[index], short_at(b, index + 1), index + 3)
 
 
 def read_multi_header(b: bytes, index: int) -> Tuple[int, list[int], int]:
-    """Helper function that reads a list-form EOF header"""
+    """Read a list-form EOF header."""
     length = short_at(b, index + 1)
     return (
         b[index],
@@ -411,16 +412,16 @@ def read_multi_header(b: bytes, index: int) -> Tuple[int, list[int], int]:
 
 
 class AbstractContainer:
-    """Abstract container to make typing less cranky"""
+    """Abstract container to make typing less cranky."""
 
     @abstractmethod
     def encode(self):
-        """Gets the byte representation of the container"""
+        """Get the byte representation of the container."""
         pass
 
 
 class BasicBlockContainer(AbstractContainer):
-    """An EOF container in code block form"""
+    """An EOF container in code block form."""
 
     code_sections: list[BasicBlockSection]
     data: bytes
@@ -428,6 +429,7 @@ class BasicBlockContainer(AbstractContainer):
     containers: list[AbstractContainer]  # type games to prevent self-typed reference
 
     def __init__(self, data: bytes):
+        """Create the basic block container from raw EOF container bytes."""
         self.code_sections = []
         self.data_length = 0
         self.containers = []
@@ -435,7 +437,7 @@ class BasicBlockContainer(AbstractContainer):
 
     def decode(self, data: bytes, parent: AbstractContainer | None = None):
         """
-        Extracts the container in the bytes and stores it in this BasicBlockContainer.
+        Extract the container in the bytes and stores it in this BasicBlockContainer.
         If a container was held in this object,it will be completely overwriten.
         """
         if not data.startswith(b"\xef\0\x01\x01"):
@@ -483,7 +485,7 @@ class BasicBlockContainer(AbstractContainer):
         self.data = data[index:]
 
     def encode(self) -> bytes:
-        """Encodes the entire container into the bytes of a complete EOF container"""
+        """Encode the entire container into the bytes of a complete EOF container."""
         section_bytecode = [section.bytecode() for section in self.code_sections]
         containers = [container.encode() for container in self.containers]
 
@@ -520,15 +522,15 @@ class BasicBlockContainer(AbstractContainer):
 
     def reconcile_bytecode(self):
         """
-        Updates values like stack and relative offsets for jumps for the whole container.
+        Update values like stack and relative offsets for jumps for the whole container.
         After modifying any of the code points or code sections this should be called to ensure
-        that the bytecode produced is valid
+        that the bytecode produced is valid.
         """
         for code_section in self.code_sections:
             code_section.reconcile_bytecode(self.code_sections)
 
     def __str__(self):
-        """String representation of a code block as joined blocks"""
+        """Produce a string representation of a code block as joined blocks."""
         return "{\n code sections: [\n  %s\n ],\n containers: %s,\n data: %s\n}" % (
             "\n  ".join(str(section) for section in self.code_sections),
             "\n  ".join(str(container) for container in self.containers),

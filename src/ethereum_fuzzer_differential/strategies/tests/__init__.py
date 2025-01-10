@@ -1,3 +1,1 @@
-"""
-Tests for the ethereum_fuzzer_differential.strategies package.
-"""
+"""Tests for the ethereum_fuzzer_differential.strategies package."""

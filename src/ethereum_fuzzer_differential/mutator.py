@@ -1,6 +1,5 @@
-"""
-Mutators for various targets.  The specific mutation strategies are in another file.
-"""
+"""Mutators for various targets.  The specific mutation strategies are in another file."""
+
 import random
 from abc import abstractmethod
 from typing import Any, Dict, Generic, List, Tuple, TypeVar
@@ -18,7 +17,7 @@ Mutatable = TypeVar("Mutatable", BasicBlockContainer, StateFixtures, Account)
 
 
 class MutateError(Exception):
-    """Expected error in mutation"""
+    """Expected error in mutation."""
 
     pass
 
@@ -33,6 +32,7 @@ class MutationStrategy(Generic[Mutatable]):
     priority: int
 
     def __init__(self, priority: int) -> None:
+        """Create the strategy."""
         self.priority = priority
 
     @abstractmethod
@@ -45,23 +45,25 @@ class MutationStrategy(Generic[Mutatable]):
 
 
 class EOFMutator(MutationStrategy[BasicBlockContainer]):
-    """Mutates an EOF contract."""
+    """Mutate an EOF contract."""
 
     def __init__(self, priority) -> None:
+        """Create the strategy."""
         super().__init__(priority)
 
     @abstractmethod
     def mutate(
         self, target: BasicBlockContainer, context: Dict[str, Any]
     ) -> Tuple[BasicBlockContainer, str]:
-        """Mutates the contract. Returns the same instance and the mutation."""
+        """Mutate the contract. Returns the same instance and the mutation."""
 
 
 class AccountMutator(MutationStrategy[Account]):
-    """Mutates an account holding an EOF contract."""
+    """Mutate an account holding an EOF contract."""
 
-    def __init__(self, eof_mutation_strategies) -> None:
-        super().__init__(1)
+    def __init__(self, eof_mutation_strategies, priority: int = 1) -> None:
+        """Create the strategy with a default priority of 1."""
+        super().__init__(priority)
         for strategy in eof_mutation_strategies:
             self.add_strategy(strategy())
 
@@ -70,7 +72,7 @@ class AccountMutator(MutationStrategy[Account]):
     total_priority: int = 0
 
     def mutate(self, account: Account, context: Dict[str, Any]) -> Tuple[Account, str]:
-        """Returns a new mutated instance of the account."""
+        """Return a new mutated instance of the account."""
         eof_mutator = random.choices(self.eof_strategies, weights=self.priorities, k=1)[0]
         container = BasicBlockContainer(account.code)
         new_container, mutation = eof_mutator.mutate(container, context)
@@ -85,26 +87,27 @@ class AccountMutator(MutationStrategy[Account]):
             return account, ""
 
     def add_strategy(self, mutator: EOFMutator):
-        """Adds a strategy to the list of mutation strategies."""
+        """Add a strategy to the list of mutation strategies."""
         self.eof_strategies.append(mutator)
         self.priorities.append(mutator.priority)
         self.total_priority += mutator.priority
 
 
 class StateTestMutator(MutationStrategy[StateFixtures]):
-    """Mutates a state test.  Currently, it only mutates EOF contracts"""
+    """Mutates a state test.  Currently, it only mutates EOF contracts."""
 
     contract_mutator: AccountMutator
     max_gas: int
 
-    def __init__(self, max_gas: int, eof_mutation_strategies) -> None:
-        super().__init__(1)
+    def __init__(self, max_gas: int, eof_mutation_strategies, priority: int = 1) -> None:
+        """Create the strategy with a default priority of 1."""
+        super().__init__(priority)
         self.max_gas = max_gas
         self.contract_mutator = AccountMutator(eof_mutation_strategies)
 
     def mutate(self, target: StateFixtures, context) -> Tuple[StateFixtures, str]:
         """
-        For each account in the fixture, if it is an EOF contract mutate it
+        For each account in the fixture, if it is an EOF contract mutate it.
 
         Only contract mutations are done, but there is a future where the rest of the state test
         may need to be mutated: inputs, memory, adding/deleting accounts, etc.
@@ -115,7 +118,7 @@ class StateTestMutator(MutationStrategy[StateFixtures]):
         pre = {}
         mutation_log = []
         tx: FixtureTransaction = fixture.transaction.copy(deep=True)
-        for (addr, acct) in fixture.pre.root.items():
+        for addr, acct in fixture.pre.root.items():
             if acct.code.startswith(b"\xef\0"):
                 new_acct, mutation = self.contract_mutator.mutate(acct, context)
                 pre[addr] = new_acct

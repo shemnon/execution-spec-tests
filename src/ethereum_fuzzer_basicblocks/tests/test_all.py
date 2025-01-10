@@ -1,6 +1,4 @@
-"""
-Tests parsing EOF bytestreams into code blocks
-"""
+"""Tests parsing EOF bytestreams into code blocks."""
 
 import pytest
 
@@ -17360,33 +17358,31 @@ all_contracts = [
 
 
 @pytest.mark.parametrize(
-    "input",
+    "input_data",
     [pytest.param(contract, id="all_%d" % index) for index, contract in enumerate(all_contracts)],
 )
-def test_parse_bytes_all(input: str):
-    """
-    Simple round trip test for parsebytes
-    """
-    container = BasicBlockContainer(bytes.fromhex(input))
+def test_parse_bytes_all(input_data):
+    """Simple round trip test for parsebytes."""
+    container = BasicBlockContainer(bytes.fromhex(input_data))
     assert container is not None
 
     encoded = container.encode()
 
     actual = encoded.hex()
-    assert input.startswith(actual)
+    assert input_data.startswith(actual)
 
 
 @pytest.mark.parametrize(
-    "input",
+    "input_data",
     [pytest.param(contract, id="all_%d" % index) for index, contract in enumerate(all_contracts)],
 )
-def test_insert_opcode(input: str):
-    """Insert a push/pop in every block to test reconciliation"""
+def test_insert_opcode(input_data):
+    """Insert a push/pop in every block to test reconciliation."""
     # skip the "at or near limit" tests generally
-    if len(input) > 64_000:
-        pytest.skip("Input too bug for code insertion tests (%d)" % len(input))
+    if len(input_data) > 64_000:
+        pytest.skip("Input too bug for code insertion tests (%d)" % len(input_data))
 
-    container = BasicBlockContainer(bytes.fromhex(input))
+    container = BasicBlockContainer(bytes.fromhex(input_data))
     assert container is not None
 
     for section in container.code_sections:
@@ -17397,21 +17393,19 @@ def test_insert_opcode(input: str):
 
 
 @pytest.mark.parametrize(
-    "input",
+    "input_data",
     [pytest.param(contract, id="all_%d" % index) for index, contract in enumerate(all_contracts)],
 )
-def test_reconcile(input: str):
-    """
-    Simple round trip test for parsebytes
-    """
-    if len(input) > 64_000:
-        pytest.skip("Input too bug for code insertion tests (%d)" % len(input))
+def test_reconcile(input_data):
+    """Simple round trip test for parsebytes and reconcile_bytecode."""
+    if len(input_data) > 64_000:
+        pytest.skip("Input too bug for code insertion tests (%d)" % len(input_data))
 
-    container = BasicBlockContainer(bytes.fromhex(input))
+    container = BasicBlockContainer(bytes.fromhex(input_data))
     assert container is not None
 
     container.reconcile_bytecode()
 
     encoded = container.encode()
     actual = encoded.hex()
-    assert input.startswith(actual)
+    assert input_data.startswith(actual)
