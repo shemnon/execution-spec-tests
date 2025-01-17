@@ -93,7 +93,7 @@ class CodePoint:
 
     def bytecode(self) -> bytes:
         """Convert the code point into the bytecode bytes it represents."""
-        return self.opcode.int().to_bytes(1, byteorder="big") + self.immediate
+        return bytes(self.opcode) + self.immediate
 
 
 class BasicBlock:

@@ -22,5 +22,4 @@ The following configuration issues will be detected by fuzzing
 1. Evmone does not have a fully functional expmod precompile. Clients under test need to be
    configured to use [an
    external library.](https://github.com/ethereum/evmone/blob/master/README.md?plain=1#L100-L102)
-2. Besu uses the old pre-EEST methods for BLOCKHASH, resulting in failed traces.
 """

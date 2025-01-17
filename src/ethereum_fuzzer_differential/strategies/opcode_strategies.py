@@ -1,6 +1,7 @@
 """A mutator that adds a PUSH0/POP pair."""
 
 import random
+from abc import abstractmethod
 from typing import Any, Dict, Tuple
 
 from ethereum_fuzzer_basicblocks.basicblocks import BasicBlock, BasicBlockContainer, CodePoint
@@ -76,10 +77,75 @@ class DeleteOpcodeBalanced(EOFMutator):
         )
 
 
+class BalancedInserter(EOFMutator):
+    """Insert a simple opcode.  Pushing and popping as needed."""
+
+    def __init__(self, priority: int = 1):
+        """Create the strategy with a default priority of 1."""
+        super().__init__(priority)
+
+    @abstractmethod
+    def generate_opcode(self) -> Op:
+        """Generates an opcode to insert."""
+
+    def mutate(
+        self, container: BasicBlockContainer, context: Dict[str, Any]
+    ) -> Tuple[BasicBlockContainer, str]:
+        """Insert a simple opcode, Pushing and popping as needed."""
+        section_idx, block_idx, pos = random_codepoint_index(
+            container, for_code_point_insertion=True
+        )
+        section = container.code_sections[section_idx]
+        block = section.blocks[block_idx]
+
+        opcode = self.generate_opcode()
+        opcode_pushed = opcode.pushed_stack_items
+        opcode_popped = opcode.popped_stack_items
+
+        pre_cp = (
+            block.code_points[pos - 1] if pos > 0 else CodePoint(Op.NOOP, stack_min=0, stack_max=0)
+        )
+        pre_height = (
+            pre_cp.stack_min + pre_cp.opcode.pushed_stack_items - pre_cp.opcode.popped_stack_items
+        )
+
+        post_height = (
+            block.code_points[pos].stack_min if pos < len(block.code_points) else pre_height
+        )
+
+        pre_push = max(
+            0,
+            max(opcode.min_stack_height, opcode_popped) - pre_height,
+        )
+        delta = post_height - pre_height - opcode_pushed + opcode_popped - pre_push
+
+        # delta is the difference between what is produced by the pre-push and op execution
+        # and what the next op had before.  Bring it back to expectation to make it "balanced"
+        for _ in range(delta):
+            block.code_points.insert(pos, CodePoint(Op.PUSH0))
+        for _ in range(0, delta, -1):
+            block.code_points.insert(pos, CodePoint(Op.POP))
+        # The actual operation we are inserting
+        # print(pre_height, "->", post_height, opcode)
+        block.code_points.insert(pos, CodePoint(opcode))
+        for _ in range(pre_push):
+            # if we need a deeper stack that what is available (such as for PUSH15) we push it here
+            block.code_points.insert(pos, CodePoint(Op.PUSH0))
+
+        # remove unneeded push/pop pairs
+        section.blocks[block_idx] = flatten_block(block)
+
+        return container, "insert 0x%s balanced section %d block %d pos %d" % (
+            bytes(opcode).hex(),
+            section_idx,
+            block_idx,
+            pos,
+        )
+
+
 eof_insertion_opcodes = list(
     valid_eof_opcodes
     - {
-        Op.BLOCKHASH,  # This is its own special hot mess, pre and post EIP-2935
         Op.STOP,
         Op.POP,
         Op.PUSH0,
@@ -140,65 +206,33 @@ eof_insertion_opcodes = list(
 )
 
 
-class InsertSimpleOpcodeBalanced(EOFMutator):
+class InsertSimpleOpcodeBalanced(BalancedInserter):
     """Insert a simple opcode.  Pushing and popping as needed."""
 
     def __init__(self, priority: int = 1):
         """Create the strategy with a default priority of 1."""
         super().__init__(priority)
 
-    def mutate(
-        self, container: BasicBlockContainer, context: Dict[str, Any]
-    ) -> Tuple[BasicBlockContainer, str]:
-        """Insert a simple opcode, Pushing and popping as needed."""
-        section_idx, block_idx, pos = random_codepoint_index(
-            container, for_code_point_insertion=True
-        )
-        section = container.code_sections[section_idx]
-        block = section.blocks[block_idx]
-
+    def generate_opcode(self) -> Op:
         opcode = random.choice(eof_insertion_opcodes)
-        opcode_pushed = opcode.pushed_stack_items
-        opcode_popped = opcode.popped_stack_items
+        return opcode
 
-        pre_cp = (
-            block.code_points[pos - 1] if pos > 0 else CodePoint(Op.NOOP, stack_min=0, stack_max=0)
-        )
-        pre_height = (
-            pre_cp.stack_min + pre_cp.opcode.pushed_stack_items - pre_cp.opcode.popped_stack_items
-        )
 
-        post_height = (
-            block.code_points[pos].stack_min if pos < len(block.code_points) else pre_height
-        )
+eof_stack_opcodes = [Op.DUPN, Op.SWAPN, Op.EXCHANGE]
 
-        pre_push = max(
-            0,
-            max(opcode.min_stack_height, opcode_popped) - pre_height,
-        )
-        delta = post_height - pre_height - opcode_pushed + opcode_popped - pre_push
 
-        # delta is the difference between what is produced by the pre-push and op execution
-        # and what the next op had before.  Bring it back to expectation to make it "balanced"
-        for _ in range(delta):
-            block.code_points.insert(pos, CodePoint(Op.PUSH0))
-        for _ in range(0, delta, -1):
-            block.code_points.insert(pos, CodePoint(Op.POP))
-        # The actual operation we are inserting
-        # print(pre_height, "->", post_height, opcode)
-        block.code_points.insert(pos, CodePoint(opcode))
-        for _ in range(pre_push):
-            # if we need a deeper stack that what is available (such as for PUSH15) we push it here
-            block.code_points.insert(pos, CodePoint(Op.PUSH0))
+class InsertEOFStackOpcodeBalanced(BalancedInserter):
+    """Insert a PUSHn/SWAPn/Exchange opcode.  Pushing and popping as needed."""
 
-        # remove unneeded push/pop pairs
-        section.blocks[block_idx] = flatten_block(block)
+    def __init__(self, priority: int = 1):
+        """Create the strategy with a default priority of 1."""
+        super().__init__(priority)
 
-        return container, "balanced simple insert section %d block %d pos %d" % (
-            section_idx,
-            block_idx,
-            pos,
-        )
+    def generate_opcode(self) -> Op:
+        opcode_type = random.choice(eof_stack_opcodes)
+        immediate = random.randint(0, 255)
+        opcode = opcode_type[immediate]
+        return opcode
 
 
 # TODO DATALOAD opcodes
@@ -210,8 +244,6 @@ class InsertSimpleOpcodeBalanced(EOFMutator):
 
 # TODO code section delete/add/call/jump
 
-# TODO DUPN/SWAPN/EXCHANGE (like insert balanced, but with immediate values)
-
 # TODO contract calls
 
 # TODO CREATE / RETURNCONTRACT :P
@@ -220,5 +252,6 @@ class InsertSimpleOpcodeBalanced(EOFMutator):
 
 opcode_strategies = [
     InsertSimpleOpcodeBalanced,
+    InsertEOFStackOpcodeBalanced,
     DeleteOpcodeBalanced,
 ]
