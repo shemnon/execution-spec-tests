@@ -76,7 +76,11 @@ class AccountMutator(MutationStrategy[Account]):
         eof_mutator = random.choices(self.eof_strategies, weights=self.priorities, k=1)[0]
         container = BasicBlockContainer(account.code)
         new_container, mutation = eof_mutator.mutate(container, context)
-        container.reconcile_bytecode()
+        try:
+            container.reconcile_bytecode()
+        except ArithmeticError:
+            # Mutations may cause boundary errors, represented mostly by OverflowErrors.
+            return account, ""
         # We need the osaka version of ethereum-execution-specs to be imported
         code = container.encode()
         try:
