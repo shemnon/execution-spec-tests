@@ -86,7 +86,7 @@ class BalancedInserter(EOFMutator):
 
     @abstractmethod
     def generate_opcode(self) -> Op:
-        """Generates an opcode to insert."""
+        """Generate an opcode to insert."""
 
     def mutate(
         self, container: BasicBlockContainer, context: Dict[str, Any]
@@ -204,6 +204,8 @@ eof_insertion_opcodes = list(
         Op.INVALID,
     }
 )
+eof_stack_opcodes = [Op.DUPN, Op.SWAPN, Op.EXCHANGE]
+eof_data_opcodes = [Op.DATALOAD, Op.DATALOADN, Op.DATASIZE, Op.DATACOPY]
 
 
 class InsertSimpleOpcodeBalanced(BalancedInserter):
@@ -214,11 +216,9 @@ class InsertSimpleOpcodeBalanced(BalancedInserter):
         super().__init__(priority)
 
     def generate_opcode(self) -> Op:
+        """Pick a random opcode from eof_insertion_opcodes."""
         opcode = random.choice(eof_insertion_opcodes)
         return opcode
-
-
-eof_stack_opcodes = [Op.DUPN, Op.SWAPN, Op.EXCHANGE]
 
 
 class InsertEOFStackOpcodeBalanced(BalancedInserter):
@@ -229,16 +229,99 @@ class InsertEOFStackOpcodeBalanced(BalancedInserter):
         super().__init__(priority)
 
     def generate_opcode(self) -> Op:
+        """Pick a random opcode from eof_stack_op."""
         opcode_type = random.choice(eof_stack_opcodes)
         immediate = random.randint(0, 255)
         opcode = opcode_type[immediate]
         return opcode
 
 
-# TODO DATALOAD opcodes
-#  Determine the load scope
-#  make sure mandatoy data is there (DATALOADN)
-#  maybe add non-mandatory data
+class BlockInserter(EOFMutator):
+    """Insert a set of opcodes.  No stack height management is performed."""
+
+    def __init__(self, target_opcodes: list[Op], priority: int = 1):
+        """Create the strategy with a default priority of 1."""
+        self.target_opcodes = target_opcodes
+        super().__init__(priority)
+
+    @abstractmethod
+    def generate_code_points(self, container: BasicBlockContainer) -> list[CodePoint]:
+        """Generate a list of code_points to insert."""
+
+    def mutate(
+        self, container: BasicBlockContainer, context: Dict[str, Any]
+    ) -> Tuple[BasicBlockContainer, str]:
+        """Insert a simple opcode, Pushing and popping as needed."""
+        section_idx, block_idx, pos = random_codepoint_index(
+            container, for_code_point_insertion=True
+        )
+        section = container.code_sections[section_idx]
+        block = section.blocks[block_idx]
+
+        code_points = self.generate_code_points(container)
+
+        block.code_points = block.code_points[0:pos] + code_points + block.code_points[pos:]
+        section.blocks[block_idx] = flatten_block(block)
+
+        return container, "insert 0x%s section %d block %d pos %d" % (
+            "".join([cp.opcode.hex() for cp in code_points if cp.opcode in self.target_opcodes]),
+            section_idx,
+            block_idx,
+            pos,
+        )
+
+
+class InsertEOFDataOpcode(BlockInserter):
+    """Insert a DATA* opcode.  Includes supporting pushes."""
+
+    def __init__(self, priority: int = 1):
+        """Create the strategy with a default priority of 1."""
+        super().__init__(eof_data_opcodes, priority)
+
+    def generate_code_points(self, container: BasicBlockContainer) -> list[CodePoint]:
+        """Generate the DATA* opcodes to insert."""
+        # pick opcode
+        opcode_type = random.choice(self.target_opcodes)
+
+        # size = random.randint(1, 0xb000) # preserve 4k for non-data
+        # location = random.randint(0, 0xb000 - size)
+        size = (
+            32
+            if opcode_type == Op.DATALOAD or opcode_type == Op.DATALOADN
+            else random.randint(1, 0x0100)
+        )  # preserve 4k for non-data
+        location = random.randint(0, 0x0100 - size)
+        extent = size + location
+
+        # update container with extra data if needed
+        datalen = len(container.data)
+        if datalen < extent:
+            container.data += random.randbytes(extent - datalen)
+            container.data_length = extent
+
+        # finalize opcode details
+        match opcode_type:
+            case Op.DATALOAD:
+                return [
+                    CodePoint(Op.PUSH2, location.to_bytes(2, byteorder="big")),
+                    CodePoint(opcode_type),
+                    CodePoint(Op.POP),
+                ]
+            case Op.DATALOADN:
+                return [
+                    CodePoint(opcode_type, location.to_bytes(2, byteorder="big")),
+                    CodePoint(Op.POP),
+                ]
+            case Op.DATACOPY:
+                return [
+                    CodePoint(Op.PUSH2, size.to_bytes(2, byteorder="big")),
+                    CodePoint(Op.PUSH2, location.to_bytes(2, byteorder="big")),
+                    CodePoint(Op.PUSH2, random.randint(0, 0x2000).to_bytes(2, byteorder="big")),
+                    CodePoint(opcode_type),
+                ]
+            case _:  # Op.DATASIZE and any accidental additions
+                return [CodePoint(opcode_type), CodePoint(Op.POP)]
+
 
 # TODO JUMP Opcodes ;P
 
@@ -253,5 +336,6 @@ class InsertEOFStackOpcodeBalanced(BalancedInserter):
 opcode_strategies = [
     InsertSimpleOpcodeBalanced,
     InsertEOFStackOpcodeBalanced,
+    InsertEOFDataOpcode,
     DeleteOpcodeBalanced,
 ]
