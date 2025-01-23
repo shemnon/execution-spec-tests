@@ -17,6 +17,9 @@ The following bugs were found using the differential fuzzer
 4. Besu created a "ghost" account when calling a non-existent account that prevented a subsequent
    value-bearing EXTCALL from being charged for account creation.
    Test [PR #1025](https://github.com/ethereum/execution-spec-tests/pull/1025)
+5. Geth in RETURNCONTRACT would append the data in-place, potentially overwriting the container
+   data of the initcode. This can manifest in DATA* operations.
+   Test [PR#1109](https://github.com/ethereum/execution-spec-tests/pull/1109)
 
 The following configuration issues will be detected by fuzzing
 1. Evmone does not have a fully functional expmod precompile. Clients under test need to be
