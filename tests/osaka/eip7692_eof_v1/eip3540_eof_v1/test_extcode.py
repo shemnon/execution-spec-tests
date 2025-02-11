@@ -63,7 +63,7 @@ def test_legacy_calls_eof_sstore(
     tx = Transaction(
         sender=sender,
         to=address_test_contract,
-        gas_limit=50_000_000,
+        gas_limit=15_000_000,
         gas_price=10,
         protected=False,
         data="",

@@ -150,6 +150,9 @@ class Alloc(BaseAlloc):
         label: str | None = None,
     ) -> Address:
         """Deploy a contract to the allocation."""
+        if evm_code_type is None:
+            evm_code_type = EVMCodeType.EOF_V1 if bytes(code).startswith(b'\xef\x00') else EVMCodeType.LEGACY
+
         if storage is None:
             storage = {}
         assert address is None, "address parameter is not supported"
@@ -201,6 +204,8 @@ class Alloc(BaseAlloc):
             data=initcode,
             value=balance,
             gas_limit=deploy_gas_limit,
+            max_priority_fee_per_gas=10**9,
+            max_fee_per_gas=10**10,
         ).with_signature_and_sender()
         self._eth_rpc.send_transaction(deploy_tx)
         self._txs.append(deploy_tx)
@@ -305,6 +310,7 @@ class Alloc(BaseAlloc):
                     sender=self._sender,
                     to=eoa,
                     value=amount,
+                    max_priority_fee_per_gas=10**9, max_fee_per_gas=10**10,
                 ).with_signature_and_sender()
 
         if fund_tx is not None:

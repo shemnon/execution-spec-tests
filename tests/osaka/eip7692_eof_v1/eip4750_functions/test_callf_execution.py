@@ -503,7 +503,7 @@ def test_callf_sneaky_stack_overflow(
     The intent is to catch implementations of CALLF that don't enforce rule #3
     """
     env = Environment()
-    sender = pre.fund_eoa()
+    sender = pre.fund_eoa(amount=10**13)
     inputs = 1
     outputs = 3
     contract_address = pre.deploy_contract(
@@ -571,6 +571,8 @@ def test_callf_sneaky_stack_overflow(
     tx = Transaction(
         to=contract_address,
         gas_limit=10_000_000,
+        max_priority_fee_per_gas=10**9,
+        max_fee_per_gas=10**10,
         sender=sender,
     )
     state_test(env=env, pre=pre, post=post, tx=tx)

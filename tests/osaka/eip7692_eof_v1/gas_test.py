@@ -52,7 +52,7 @@ def gas_test(
     if warm_gas is None:
         warm_gas = cold_gas
 
-    sender = pre.fund_eoa()
+    sender = pre.fund_eoa(amount=10**14)
 
     address_baseline = pre.deploy_contract(Container.Code(setup_code + tear_down_code))
     code_subject = setup_code + subject_code + tear_down_code
@@ -151,6 +151,7 @@ def gas_test(
         post[address_legacy_harness].storage[slot_oog_call_result] = LEGACY_CALL_FAILURE
         post[address_legacy_harness].storage[slot_sanity_call_result] = LEGACY_CALL_SUCCESS
 
-    tx = Transaction(to=address_legacy_harness, gas_limit=env.gas_limit, sender=sender)
+    tx = Transaction(to=address_legacy_harness, gas_limit=15_000_000, sender=sender,
+                     max_priority_fee_per_gas=10**9)
 
     state_test(env=env, pre=pre, tx=tx, post=post)
