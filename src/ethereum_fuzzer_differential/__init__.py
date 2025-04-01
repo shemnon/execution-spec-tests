@@ -20,6 +20,8 @@ The following bugs were found using the differential fuzzer
 5. Geth in RETURNCONTRACT would append the data in-place, potentially overwriting the container
    data of the initcode. This can manifest in DATA* operations.
    Test [PR#1109](https://github.com/ethereum/execution-spec-tests/pull/1109)
+6. Erigon was performing SWAPN and EXCHANGE off of the bottom of the stack.
+   Test [PR#1373](https://github.com/ethereum/execution-spec-tests/pull/1373)
 
 The following configuration issues will be detected by fuzzing
 1. Evmone does not have a fully functional expmod precompile. Clients under test need to be
