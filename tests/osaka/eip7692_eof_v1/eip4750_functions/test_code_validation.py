@@ -40,7 +40,7 @@ VALID: List[Container] = [
             Section.Code(
                 code=Op.CALLF[1] + Op.POP + Op.STOP,
                 code_inputs=0,
-                max_stack_height=1,
+                max_stack_increase=1,
             ),
             Section.Code(
                 code=(
@@ -51,7 +51,7 @@ VALID: List[Container] = [
                 ),
                 code_inputs=0,
                 code_outputs=1,
-                max_stack_height=1,
+                max_stack_increase=1,
             ),
         ],
     ),
@@ -150,7 +150,7 @@ INVALID: List[Container] = [
             Section.Code(
                 code=(Op.PUSH0 + Op.RETF),
                 code_outputs=2,
-                max_stack_height=1,
+                max_stack_increase=1,
             ),
         ],
         validity_error=EOFException.INVALID_MAX_STACK_HEIGHT,
@@ -160,13 +160,13 @@ INVALID: List[Container] = [
         sections=[
             Section.Code(
                 code=(Op.CALLF[1] + Op.STOP),
-                # max_stack_heights of sections aligned with actual stack
-                max_stack_height=1,
+                # max_stack_increases of sections aligned with actual stack
+                max_stack_increase=1,
             ),
             Section.Code(
                 code=(Op.PUSH0 + Op.RETF),
                 code_outputs=2,
-                max_stack_height=1,
+                max_stack_increase=1,
             ),
         ],
         validity_error=EOFException.INVALID_MAX_STACK_HEIGHT,
@@ -176,13 +176,13 @@ INVALID: List[Container] = [
         sections=[
             Section.Code(
                 code=(Op.CALLF[1] + Op.STOP),
-                # max_stack_heights of sections aligned with declared outputs
-                max_stack_height=2,
+                # max_stack_increases of sections aligned with declared outputs
+                max_stack_increase=2,
             ),
             Section.Code(
                 code=(Op.PUSH0 + Op.RETF),
                 code_outputs=2,
-                max_stack_height=2,
+                max_stack_increase=2,
             ),
         ],
         validity_error=EOFException.STACK_UNDERFLOW,
@@ -262,13 +262,13 @@ def test_eof_validity(
                     code=Op.CALLF + b"\x00",  # would be valid with "02" + Op.RETF.
                     code_inputs=2,
                     code_outputs=1,
-                    max_stack_height=2,
+                    max_stack_increase=0,
                 ),
                 Section.Code(
                     code=Op.SUB + Op.RETF,  # SUB (0x02) can be confused with CALLF[2].
                     code_inputs=2,
                     code_outputs=1,
-                    max_stack_height=2,
+                    max_stack_increase=0,
                 ),
             ],
         ),
@@ -505,12 +505,12 @@ def test_callf_stack_height_limit_exceeded(eof_test, callee_outputs):
         sections=[
             Section.Code(
                 Op.PUSH0 * callf_stack_height + Op.CALLF[1] + Op.STOP,
-                max_stack_height=MAX_RUNTIME_OPERAND_STACK_HEIGHT,
+                max_stack_increase=MAX_RUNTIME_OPERAND_STACK_HEIGHT,
             ),
             Section.Code(
                 Op.PUSH0 * callee_outputs + Op.RETF,
                 code_outputs=callee_outputs,
-                max_stack_height=callee_outputs,
+                max_stack_increase=callee_outputs,
             ),
         ],
     )
@@ -519,26 +519,26 @@ def test_callf_stack_height_limit_exceeded(eof_test, callee_outputs):
 
 @pytest.mark.parametrize("callee_outputs", [1, 2, MAX_CODE_OUTPUTS - 1, MAX_CODE_OUTPUTS])
 @pytest.mark.parametrize(
-    "max_stack_height", [0, 1, MAX_OPERAND_STACK_HEIGHT - 1, MAX_OPERAND_STACK_HEIGHT]
+    "max_stack_increase", [0, 1, MAX_OPERAND_STACK_HEIGHT - 1, MAX_OPERAND_STACK_HEIGHT]
 )
-def test_callf_stack_overflow_by_outputs(eof_test, callee_outputs, max_stack_height):
+def test_callf_stack_overflow_by_outputs(eof_test, callee_outputs, max_stack_increase):
     """
     Test for invalid EOF code containing CALLF instruction exceeding the runtime stack height limit
     by calling a function with at least one output. The computed stack height of the code section 0
     is always above the maximum allowed in the EOF type section. Therefore, the test declares
-    an invalid max_stack_height.
+    an invalid max_stack_increase.
     """
     callf_stack_height = (MAX_RUNTIME_OPERAND_STACK_HEIGHT + 1) - callee_outputs
     container = Container(
         sections=[
             Section.Code(
                 Op.PUSH0 * callf_stack_height + Op.CALLF[1] + Op.STOP,
-                max_stack_height=max_stack_height,
+                max_stack_increase=max_stack_increase,
             ),
             Section.Code(
                 Op.PUSH0 + Op.DUP1 + Op.RETF,
                 code_outputs=callee_outputs,
-                max_stack_height=callee_outputs,
+                max_stack_increase=callee_outputs,
             ),
         ],
     )
@@ -560,12 +560,12 @@ def test_callf_stack_overflow_by_height(eof_test, callee_stack_height):
         sections=[
             Section.Code(
                 Op.PUSH0 * MAX_OPERAND_STACK_HEIGHT + Op.CALLF[1] + Op.STOP,
-                max_stack_height=MAX_OPERAND_STACK_HEIGHT,
+                max_stack_increase=MAX_OPERAND_STACK_HEIGHT,
             ),
             Section.Code(
                 Op.PUSH0 * callee_stack_height + Op.POP * callee_stack_height + Op.RETF,
                 code_outputs=0,
-                max_stack_height=callee_stack_height,
+                max_stack_increase=callee_stack_height,
             ),
         ],
     )

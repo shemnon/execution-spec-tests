@@ -40,7 +40,7 @@ def test_callf_factorial(eof_state_test: EOFStateTestFiller, n, result):
             sections=[
                 Section.Code(
                     Op.CALLDATALOAD(0) + Op.SSTORE(0, Op.CALLF[1]) + Op.STOP,
-                    max_stack_height=2,
+                    max_stack_increase=2,
                 ),
                 Section.Code(
                     Op.PUSH1[1]
@@ -61,7 +61,7 @@ def test_callf_factorial(eof_state_test: EOFStateTestFiller, n, result):
                     + Op.RETF,
                     code_inputs=1,
                     code_outputs=1,
-                    max_stack_height=3,
+                    max_stack_increase=2,
                 ),
             ]
         ),
@@ -81,7 +81,7 @@ def test_callf_fibonacci(eof_state_test: EOFStateTestFiller, n, result):
             sections=[
                 Section.Code(
                     Op.CALLDATALOAD(0) + Op.SSTORE(0, Op.CALLF[1]) + Op.STOP,
-                    max_stack_height=2,
+                    max_stack_increase=2,
                 ),
                 Section.Code(
                     Op.PUSH1[2]
@@ -105,7 +105,7 @@ def test_callf_fibonacci(eof_state_test: EOFStateTestFiller, n, result):
                     + Op.RETF,
                     code_inputs=1,
                     code_outputs=1,
-                    max_stack_height=4,
+                    max_stack_increase=3,
                 ),
             ]
         ),
@@ -127,13 +127,13 @@ def test_callf_fibonacci(eof_state_test: EOFStateTestFiller, n, result):
                         Op.PUSH1[1] + Op.PUSH2[value_code_worked + 1] + Op.CALLF[1],
                     )
                     + Op.STOP,
-                    max_stack_height=2,
+                    max_stack_increase=2,
                 ),
                 Section.Code(
                     Op.SUB + Op.RETF,
                     code_inputs=2,
                     code_outputs=1,
-                    max_stack_height=2,
+                    max_stack_increase=0,
                 ),
             ],
         ),
@@ -142,7 +142,7 @@ def test_callf_fibonacci(eof_state_test: EOFStateTestFiller, n, result):
             sections=[
                 Section.Code(
                     Op.CALLF[1] + Op.SSTORE + Op.STOP,
-                    max_stack_height=2,
+                    max_stack_increase=2,
                 )
             ]
             + [
@@ -150,7 +150,7 @@ def test_callf_fibonacci(eof_state_test: EOFStateTestFiller, n, result):
                     Op.CALLF[i] + Op.RETF,
                     code_inputs=0,
                     code_outputs=2,
-                    max_stack_height=2,
+                    max_stack_increase=2,
                 )
                 for i in range(2, 1024)
             ]
@@ -159,7 +159,7 @@ def test_callf_fibonacci(eof_state_test: EOFStateTestFiller, n, result):
                     Op.PUSH2[value_code_worked] + Op.PUSH1[slot_code_worked] + Op.RETF,
                     code_inputs=0,
                     code_outputs=2,
-                    max_stack_height=2,
+                    max_stack_increase=2,
                 ),
             ],
         ),
@@ -174,25 +174,25 @@ def test_callf_fibonacci(eof_state_test: EOFStateTestFiller, n, result):
                     + Op.CALLF[3]
                     + Op.SSTORE
                     + Op.STOP,
-                    max_stack_height=4,
+                    max_stack_increase=4,
                 ),
                 Section.Code(
                     Op.POP + Op.RETF,
                     code_inputs=1,
                     code_outputs=0,
-                    max_stack_height=1,
+                    max_stack_increase=0,
                 ),
                 Section.Code(
                     Op.PUSH2[value_code_worked] + Op.RETF,
                     code_inputs=0,
                     code_outputs=1,
-                    max_stack_height=1,
+                    max_stack_increase=1,
                 ),
                 Section.Code(
                     Op.DUP2 + Op.PUSH2[slot_code_worked] + Op.RETF,
                     code_inputs=2,
                     code_outputs=4,
-                    max_stack_height=4,
+                    max_stack_increase=2,
                 ),
             ],
         ),
@@ -219,13 +219,13 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.POP * 1023
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=1023,
+                    max_stack_increase=1023,
                 ),
                 Section.Code(
                     Op.PUSH0 + Op.POP + Op.RETF,
                     code_inputs=0,
                     code_outputs=0,
-                    max_stack_height=1,
+                    max_stack_increase=1,
                 ),
             ],
         ),
@@ -238,13 +238,13 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.POP * 1023
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=1023,
+                    max_stack_increase=1023,
                 ),
                 Section.Code(
                     Op.PUSH0 + Op.POP + Op.RETF,
                     code_inputs=3,
                     code_outputs=3,
-                    max_stack_height=4,
+                    max_stack_increase=1,
                 ),
             ],
         ),
@@ -257,7 +257,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.POP * 1023
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=1023,
+                    max_stack_increase=1023,
                 ),
                 Section.Code(
                     Op.CALLF[2]
@@ -267,13 +267,13 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.RETF,
                     code_inputs=0,
                     code_outputs=0,
-                    max_stack_height=1,
+                    max_stack_increase=1,
                 ),
                 Section.Code(
                     Op.PUSH0 + Op.RETF,  # stack has 1024 items
                     code_inputs=0,
                     code_outputs=1,
-                    max_stack_height=1,
+                    max_stack_increase=1,
                 ),
             ],
         ),
@@ -286,7 +286,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.POP * 1022
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=1022,
+                    max_stack_increase=1022,
                 ),
                 Section.Code(
                     Op.PUSH0
@@ -297,7 +297,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.RETF,
                     code_inputs=0,
                     code_outputs=0,
-                    max_stack_height=1,
+                    max_stack_increase=1,
                 ),
                 Section.Code(
                     Op.PUSH0
@@ -307,7 +307,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.RETF,
                     code_inputs=0,
                     code_outputs=0,
-                    max_stack_height=1,
+                    max_stack_increase=1,
                 ),
             ],
         ),
@@ -320,7 +320,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.POP * 1022
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=1022,
+                    max_stack_increase=1022,
                 ),
                 Section.Code(
                     Op.PUSH0
@@ -331,7 +331,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.RETF,
                     code_inputs=3,
                     code_outputs=3,
-                    max_stack_height=4,
+                    max_stack_increase=1,
                 ),
                 Section.Code(
                     Op.PUSH0
@@ -341,7 +341,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.RETF,
                     code_inputs=3,
                     code_outputs=3,
-                    max_stack_height=4,
+                    max_stack_increase=1,
                 ),
             ],
         ),
@@ -355,7 +355,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.PUSH1[slot_code_worked]
                     + Op.SSTORE
                     + Op.STOP,
-                    max_stack_height=2,
+                    max_stack_increase=2,
                 ),
                 Section.Code(
                     Op.POP  # clear input
@@ -364,7 +364,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.RETF,  # return nothing
                     code_inputs=1,
                     code_outputs=0,
-                    max_stack_height=1023,
+                    max_stack_increase=1022,
                 ),
             ],
         ),
@@ -377,7 +377,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.CALLF[1]
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.STOP,
-                    max_stack_height=2,
+                    max_stack_increase=2,
                 ),
                 Section.Code(
                     Op.POP  # clear input[0]
@@ -387,7 +387,7 @@ def test_callf(eof_state_test: EOFStateTestFiller, container: Container):
                     + Op.RETF,  # return nothing
                     code_inputs=2,
                     code_outputs=0,
-                    max_stack_height=1023,
+                    max_stack_increase=1021,
                 ),
             ],
         ),
@@ -414,7 +414,7 @@ def test_callf_operand_stack_size_max(eof_state_test: EOFStateTestFiller, contai
                     + Op.POP * 1023
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=1023,
+                    max_stack_increase=1023,
                 ),
                 Section.Code(
                     Op.PUSH0
@@ -425,7 +425,7 @@ def test_callf_operand_stack_size_max(eof_state_test: EOFStateTestFiller, contai
                     + Op.RETF,
                     code_inputs=0,
                     code_outputs=0,
-                    max_stack_height=1,
+                    max_stack_increase=1,
                 ),
                 Section.Code(
                     Op.PUSH0
@@ -435,7 +435,7 @@ def test_callf_operand_stack_size_max(eof_state_test: EOFStateTestFiller, contai
                     + Op.RETF,
                     code_inputs=0,
                     code_outputs=0,
-                    max_stack_height=1,
+                    max_stack_increase=1,
                 ),
             ],
         ),
@@ -448,7 +448,7 @@ def test_callf_operand_stack_size_max(eof_state_test: EOFStateTestFiller, contai
                     + Op.POP * 1023
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=1023,
+                    max_stack_increase=1023,
                 ),
                 Section.Code(
                     Op.PUSH0
@@ -459,7 +459,7 @@ def test_callf_operand_stack_size_max(eof_state_test: EOFStateTestFiller, contai
                     + Op.RETF,
                     code_inputs=3,
                     code_outputs=3,
-                    max_stack_height=4,
+                    max_stack_increase=1,
                 ),
                 Section.Code(
                     Op.PUSH0
@@ -469,7 +469,7 @@ def test_callf_operand_stack_size_max(eof_state_test: EOFStateTestFiller, contai
                     + Op.RETF,
                     code_inputs=3,
                     code_outputs=3,
-                    max_stack_height=4,
+                    max_stack_increase=1,
                 ),
             ],
         ),
@@ -520,13 +520,13 @@ def test_callf_sneaky_stack_overflow(
                     + Op.POP * stack_height
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=stack_height + outputs - inputs,
+                    max_stack_increase=stack_height + outputs - inputs,
                 ),
                 Section.Code(
                     Op.CALLF[2] + Op.POP + Op.RETF,
                     code_inputs=inputs,
                     code_outputs=outputs,
-                    max_stack_height=outputs + 1,
+                    max_stack_increase=outputs,
                 ),
                 Section.Code(
                     Op.RJUMPI[4]
@@ -537,7 +537,7 @@ def test_callf_sneaky_stack_overflow(
                     + Op.RETF,
                     code_inputs=inputs,
                     code_outputs=outputs + 1,
-                    max_stack_height=outputs + 2,
+                    max_stack_increase=outputs + 2 - inputs,
                 ),
                 Section.Code(
                     Op.POP * inputs
@@ -546,7 +546,7 @@ def test_callf_sneaky_stack_overflow(
                     + Op.RETF,
                     code_inputs=inputs,
                     code_outputs=outputs + 1,
-                    max_stack_height=outputs + 1,
+                    max_stack_increase=outputs + 1 - inputs,
                 ),
             ],
         ),
@@ -619,7 +619,7 @@ def test_callf_max_stack(
                     + Op.CALLF[1]
                     + Op.SSTORE(slot_code_worked, value_code_worked)
                     + Op.RETURN(0, 0),
-                    max_stack_height=7,
+                    max_stack_increase=7,
                 ),
                 Section.Code(
                     Op.PUSH1(1)  # arg, 1
@@ -635,13 +635,13 @@ def test_callf_max_stack(
                     + Op.RETF,
                     code_inputs=1,
                     code_outputs=1,
-                    max_stack_height=2,
+                    max_stack_increase=1,
                 ),
                 Section.Code(
                     Op.RETF,
                     code_inputs=0,
                     code_outputs=0,
-                    max_stack_height=0,
+                    max_stack_increase=0,
                 ),
             ],
         ),
