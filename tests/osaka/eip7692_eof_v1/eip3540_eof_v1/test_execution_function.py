@@ -123,7 +123,7 @@ CALL_SUCCEED_CONTRACTS: List[Container] = [
                 ),
                 code_inputs=1,
                 code_outputs=0,
-                max_stack_height=3,
+                max_stack_increase=2,
             ),
         ],
     ),
@@ -132,7 +132,7 @@ CALL_SUCCEED_CONTRACTS: List[Container] = [
         sections=[
             Section.Code(
                 code=Op.SSTORE(0, 1) + Op.CALLF[1] + Op.STOP,
-                max_stack_height=2,
+                max_stack_increase=2,
             ),
             Section.Code(
                 code=(
@@ -153,7 +153,7 @@ CALL_SUCCEED_CONTRACTS: List[Container] = [
                 ),
                 code_inputs=0,
                 code_outputs=0,
-                max_stack_height=3,
+                max_stack_increase=3,
             ),
         ],
     ),
@@ -182,7 +182,7 @@ CALL_SUCCEED_CONTRACTS: List[Container] = [
                 ),
                 code_inputs=0,
                 code_outputs=0,
-                max_stack_height=3,
+                max_stack_increase=3,
             ),
         ],
     ),
@@ -221,7 +221,7 @@ CALL_FAIL_CONTRACTS: List[Container] = [
                 ),
                 code_inputs=1,
                 code_outputs=0,
-                max_stack_height=3,
+                max_stack_increase=2,
             ),
         ],
     ),
@@ -230,7 +230,7 @@ CALL_FAIL_CONTRACTS: List[Container] = [
         sections=[
             Section.Code(
                 code=Op.SSTORE(0, 1) + Op.CALLF[1] + Op.STOP,
-                max_stack_height=2,
+                max_stack_increase=2,
             ),
             Section.Code(
                 code=(
@@ -251,7 +251,7 @@ CALL_FAIL_CONTRACTS: List[Container] = [
                 ),
                 code_inputs=0,
                 code_outputs=0,
-                max_stack_height=3,
+                max_stack_increase=3,
             ),
         ],
     ),
@@ -260,7 +260,7 @@ CALL_FAIL_CONTRACTS: List[Container] = [
         sections=[
             Section.Code(
                 code=Op.MSTORE(0, 1) + Op.CALLF[1] + Op.STOP,
-                max_stack_height=2,
+                max_stack_increase=2,
             ),
             Section.Code(
                 code=(
@@ -281,7 +281,7 @@ CALL_FAIL_CONTRACTS: List[Container] = [
                 ),
                 code_inputs=0,
                 code_outputs=0,
-                max_stack_height=3,
+                max_stack_increase=3,
             ),
         ],
     ),

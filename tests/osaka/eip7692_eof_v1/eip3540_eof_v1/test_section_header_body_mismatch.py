@@ -118,7 +118,7 @@ def test_code_section_header_body_mismatch(
                 code=Op.ADDRESS + Op.POP + Op.STOP,
                 code_inputs=0,
                 code_outputs=0,
-                max_stack_height=0,
+                max_stack_increase=0,
                 # whether to not mention it in code section header list
                 skip_header_listing=skip_header_listing,
                 # whether to not print its code in containers body

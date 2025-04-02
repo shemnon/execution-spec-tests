@@ -46,7 +46,7 @@ valid_eof_opcodes = all_opcodes - invalid_eof_opcodes
 # Halting the execution opcodes can be placed without STOP instruction at the end
 halting_opcodes = {
     Op.STOP,
-    Op.RETURNCONTRACT,
+    Op.RETURNCODE,
     Op.RETURN,
     Op.REVERT,
     Op.INVALID,
@@ -88,7 +88,7 @@ def test_all_opcodes_in_container(
     sections = [Section.Code(code=bytecode)]
 
     match opcode:
-        case Op.EOFCREATE | Op.RETURNCONTRACT:
+        case Op.EOFCREATE | Op.RETURNCODE:
             sections.append(
                 Section.Container(
                     container=Container(
@@ -107,7 +107,7 @@ def test_all_opcodes_in_container(
             )
     sections.append(Section.Data("1122334455667788" * 4))
 
-    if opcode == Op.RETURNCONTRACT:
+    if opcode == Op.RETURNCODE:
         eof_code = Container(sections=sections, kind=ContainerKind.INITCODE)
     else:
         eof_code = Container(sections=sections)
@@ -136,8 +136,8 @@ def test_invalid_opcodes_after_stop(
     """Test that an invalid opcode placed after STOP (terminating instruction) invalidates EOF."""
     terminating_code = Bytecode(terminating_opcode)
     match terminating_opcode:  # Enhance the code for complex opcodes.
-        case Op.RETURNCONTRACT:
-            terminating_code = Op.RETURNCONTRACT[0]
+        case Op.RETURNCODE:
+            terminating_code = Op.RETURNCODE[0]
         case Op.RETURN | Op.REVERT:
             terminating_code = Op.PUSH0 + Op.PUSH0 + terminating_opcode
         case Op.RJUMP:
@@ -145,7 +145,7 @@ def test_invalid_opcodes_after_stop(
 
     eof_code = Container(
         kind=ContainerKind.INITCODE
-        if terminating_opcode == Op.RETURNCONTRACT
+        if terminating_opcode == Op.RETURNCODE
         else ContainerKind.RUNTIME,
         sections=[
             Section.Code(code=terminating_code + opcode),
@@ -153,7 +153,7 @@ def test_invalid_opcodes_after_stop(
         ]
         + (
             [Section.Container(container=Container.Code(Op.INVALID))]
-            if terminating_opcode == Op.RETURNCONTRACT
+            if terminating_opcode == Op.RETURNCODE
             else []
         ),
     )
@@ -194,7 +194,7 @@ def test_all_invalid_terminating_opcodes(
             Section.Container(
                 container=Container(
                     sections=[
-                        Section.Code(code=Op.RETURNCONTRACT[0](0, 0)),
+                        Section.Code(code=Op.RETURNCODE[0](0, 0)),
                         Section.Container(Container.Code(code=Op.STOP)),
                     ]
                 )
@@ -233,13 +233,13 @@ def test_all_unreachable_terminating_opcodes_after_stop(
                 Section.Code(code=Op.STOP + Op.JUMPF[1]),
                 Section.Code(code=Op.STOP),
             ]
-        case Op.RETURNCONTRACT:
+        case Op.RETURNCODE:
             sections = [
                 Section.Code(code=Op.EOFCREATE[0](0, 0, 0, 0) + Op.STOP),
                 Section.Container(
                     container=Container(
                         sections=[
-                            Section.Code(code=Op.STOP + Op.RETURNCONTRACT[0](0, 0)),
+                            Section.Code(code=Op.STOP + Op.RETURNCODE[0](0, 0)),
                             Section.Container(Container.Code(code=Op.STOP)),
                         ]
                     )
@@ -257,7 +257,7 @@ def test_all_unreachable_terminating_opcodes_after_stop(
             sections=sections,
         ),
         expect_exception=EOFException.UNREACHABLE_INSTRUCTIONS
-        if opcode != Op.RETURNCONTRACT
+        if opcode != Op.RETURNCODE
         else EOFException.INCOMPATIBLE_CONTAINER_KIND,
     )
 
@@ -282,13 +282,13 @@ def test_all_unreachable_terminating_opcodes_before_stop(
                 Section.Code(code=Op.JUMPF[1] + Op.STOP),
                 Section.Code(code=Op.STOP),
             ]
-        case Op.RETURNCONTRACT:
+        case Op.RETURNCODE:
             sections = [
                 Section.Code(code=Op.EOFCREATE[0](0, 0, 0, 0) + Op.STOP),
                 Section.Container(
                     container=Container(
                         sections=[
-                            Section.Code(code=Op.RETURNCONTRACT[0](0, 0) + Op.STOP),
+                            Section.Code(code=Op.RETURNCODE[0](0, 0) + Op.STOP),
                             Section.Container(Container.Code(code=Op.STOP)),
                         ]
                     )
@@ -306,7 +306,7 @@ def test_all_unreachable_terminating_opcodes_before_stop(
             sections=sections,
         ),
         expect_exception=EOFException.UNREACHABLE_INSTRUCTIONS
-        if opcode != Op.RETURNCONTRACT
+        if opcode != Op.RETURNCODE
         else EOFException.INCOMPATIBLE_CONTAINER_KIND,
     )
 
@@ -336,13 +336,13 @@ def test_all_opcodes_stack_underflow(
             Section.Container(
                 container=Container(
                     sections=[
-                        Section.Code(code=Op.RETURNCONTRACT[0](0, 0)),
+                        Section.Code(code=Op.RETURNCODE[0](0, 0)),
                         Section.Container(Container.Code(code=Op.STOP)),
                     ]
                 )
             ),
         ]
-    elif opcode == Op.RETURNCONTRACT:
+    elif opcode == Op.RETURNCODE:
         sections = [
             Section.Code(code=Op.EOFCREATE[0](0, 0, 0, 0) + Op.STOP),
             Section.Container(
@@ -380,10 +380,10 @@ def test_all_opcodes_stack_underflow(
 @pytest.mark.parametrize(
     "exception",
     # We test two types of exceptions here:
-    # 1. Invalid max stack height, where we modify the `max_stack_height` field of the code section
+    # 1. Invalid max stack height, where we modify the `max_stack_increase` field of the code section
     #    to the maximum stack height allowed by the EIP-3540, so the code still has to be checked
     #    for stack overflow.
-    # 2. Max stack height above limit, where we don't modify the `max_stack_height` field of the
+    # 2. Max stack height above limit, where we don't modify the `max_stack_increase` field of the
     #    code section, so the actual code doesn't have to be verified for the stack overflow.
     [EOFException.INVALID_MAX_STACK_HEIGHT, EOFException.MAX_STACK_HEIGHT_ABOVE_LIMIT],
 )
@@ -406,7 +406,7 @@ def test_all_opcodes_stack_overflow(
 
     if exception == EOFException.INVALID_MAX_STACK_HEIGHT:
         # Lie about the max stack height to make the code be checked for stack overflow.
-        kwargs["max_stack_height"] = MAX_OPERAND_STACK_HEIGHT
+        kwargs["max_stack_increase"] = MAX_OPERAND_STACK_HEIGHT
 
     sections = [Section.Code(**kwargs)]
 
@@ -444,14 +444,14 @@ def valid_opcode_combinations(
 
 
 @pytest.mark.parametrize(
-    "compute_max_stack_height, truncate_all, opcode",
+    "compute_max_stack_increase, truncate_all, opcode",
     valid_opcode_combinations([False, True], [False, True], sorted(data_portion_opcodes)),
 )
 def test_truncated_data_portion_opcodes(
     eof_test: EOFTestFiller,
     opcode: Opcode,
     truncate_all: bool,
-    compute_max_stack_height: bool,
+    compute_max_stack_increase: bool,
 ):
     """
     Test that an instruction with data portion and truncated immediate bytes
@@ -465,13 +465,13 @@ def test_truncated_data_portion_opcodes(
     if opcode.min_stack_height > 0:
         opcode_bytes = bytes(Op.PUSH0 * opcode.min_stack_height) + opcode_bytes
 
-    max_stack_height = (
-        max(opcode.min_stack_height, opcode.pushed_stack_items) if compute_max_stack_height else 0
+    max_stack_increase = (
+        max(opcode.min_stack_height, opcode.pushed_stack_items) if compute_max_stack_increase else 0
     )
 
     eof_code = Container(
         sections=[
-            Section.Code(opcode_bytes, max_stack_height=max_stack_height),
+            Section.Code(opcode_bytes, max_stack_increase=max_stack_increase),
             # Provide data section potentially confused with missing imm bytes.
             Section.Data(b"\0" * 64),
         ]

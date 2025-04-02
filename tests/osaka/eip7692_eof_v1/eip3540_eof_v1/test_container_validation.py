@@ -54,6 +54,7 @@ VALID_CONTAINER = Container(sections=[Section.Code(code=Op.STOP)])
                     code=Op.POP + Op.PUSH0 + Op.RETF,
                     code_inputs=1,
                     code_outputs=1,
+                    max_stack_increase=0,
                 ),
             ],
         ),
@@ -62,13 +63,12 @@ VALID_CONTAINER = Container(sections=[Section.Code(code=Op.STOP)])
             sections=[
                 Section.Code(
                     code=((Op.PUSH0 * MAX_CODE_INPUTS) + Op.CALLF[1] + Op.STOP),
-                    max_stack_height=MAX_CODE_INPUTS,
                 ),
                 Section.Code(
                     code=(Op.POP * MAX_CODE_INPUTS) + Op.RETF,
                     code_inputs=MAX_CODE_INPUTS,
                     code_outputs=0,
-                    max_stack_height=MAX_CODE_INPUTS,
+                    max_stack_increase=0,
                 ),
             ],
         ),
@@ -77,13 +77,13 @@ VALID_CONTAINER = Container(sections=[Section.Code(code=Op.STOP)])
             sections=[
                 Section.Code(
                     code=(Op.CALLF[1] + Op.STOP),
-                    max_stack_height=MAX_CODE_OUTPUTS,
+                    max_stack_increase=MAX_CODE_OUTPUTS,
                 ),
                 Section.Code(
                     code=(Op.PUSH0 * MAX_CODE_OUTPUTS) + Op.RETF,
                     code_inputs=0,
                     code_outputs=MAX_CODE_OUTPUTS,
-                    max_stack_height=MAX_CODE_OUTPUTS,
+                    max_stack_increase=MAX_CODE_OUTPUTS,
                 ),
             ],
         ),
@@ -105,13 +105,13 @@ VALID_CONTAINER = Container(sections=[Section.Code(code=Op.STOP)])
             sections=[
                 Section.Code(
                     (Op.PUSH0 * MAX_CODE_OUTPUTS) + Op.CALLF[1] + Op.STOP,
-                    max_stack_height=MAX_CODE_OUTPUTS,
+                    max_stack_increase=MAX_CODE_OUTPUTS,
                 ),
                 Section.Code(
                     code=Op.RETF,
                     code_inputs=MAX_CODE_INPUTS,
                     code_outputs=MAX_CODE_OUTPUTS,
-                    max_stack_height=MAX_CODE_INPUTS,
+                    max_stack_increase=0,
                 ),
             ],
         ),
@@ -347,23 +347,28 @@ def test_valid_containers(
             validity_error=EOFException.INCOMPLETE_SECTION_SIZE,
         ),
         Container(
+            name="incomplete_container_section_size_4",
+            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0002 0001 0000",
+            validity_error=EOFException.INCOMPLETE_SECTION_SIZE,
+        ),
+        Container(
             name="zero_size_container_section",
-            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0001 0000 ff 0000 00 00800000 00",
+            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0001 00000000 ff 0000 00 00800000 00",
             validity_error=EOFException.ZERO_SECTION_SIZE,
         ),
         Container(
             name="truncated_header_data_section_with_container_section",
-            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0001 0001",
+            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0001 00000001",
             validity_error=EOFException.MISSING_HEADERS_TERMINATOR,
         ),
         Container(
             name="no_data_section_size_with_container_section",
-            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0001 0001 ff",
+            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0001 00000001 ff",
             validity_error=EOFException.MISSING_HEADERS_TERMINATOR,
         ),
         Container(
             name="data_section_size_incomplete_with_container_section",
-            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0001 0001 ff 00",
+            raw_bytes="ef00 01 01 0004 02 0001 0001 03 0001 00000001 ff 00",
             validity_error=EOFException.INCOMPLETE_SECTION_SIZE,
         ),
         Container(
@@ -410,7 +415,7 @@ def test_valid_containers(
         Container(
             # EOF code containing type section size (Size 8 - 3 Code sections)
             name="EOF1I4750_0005",
-            raw_bytes="ef0001010008020003000100010001ff0000000080000000800000fefefe",
+            raw_bytes="ef00010100080200030001000000010001ff0000000080000000800000fefefe",
             validity_error=EOFException.INVALID_TYPE_SECTION_SIZE,
         ),
         Container(
@@ -575,7 +580,7 @@ def test_valid_containers(
             validity_error=EOFException.INVALID_SECTION_BODIES_SIZE,
         ),
         Container(
-            name="truncated_type_section_before_max_stack_height",
+            name="truncated_type_section_before_max_stack_increase",
             sections=[
                 Section(kind=SectionKind.TYPE, data=b"\0\x80", custom_size=4),
                 Section.Code(code=b"", custom_size=0x01),
@@ -584,7 +589,7 @@ def test_valid_containers(
             validity_error=EOFException.INVALID_SECTION_BODIES_SIZE,
         ),
         Container(
-            name="truncated_type_section_truncated_max_stack_height",
+            name="truncated_type_section_truncated_max_stack_increase",
             sections=[
                 Section(kind=SectionKind.TYPE, data=b"\0\x80\0", custom_size=4),
                 Section.Code(code=b"", custom_size=0x01),
@@ -811,7 +816,7 @@ def test_valid_containers(
             ],
             auto_sort_sections=AutoSection.ONLY_BODY,
             expected_bytecode=(
-                "ef00 01 01 0004 02 0001 0015 03 0001 0014 ff 0001 03 0001 0014 00"
+                "ef00 01 01 0004 02 0001 0015 03 0001 00000014 ff 0001 03 0001 00000014 00"
                 "00800005 6000600060006000ec00 6000600060006000ec01 00"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
@@ -829,7 +834,7 @@ def test_valid_containers(
             ],
             skip_join_concurrent_sections_in_header=True,
             expected_bytecode=(
-                "ef00 01 01 0004 02 0001 0015 03 0001 0014 03 0001 0014 ff 0001 00"
+                "ef00 01 01 0004 02 0001 0015 03 0001 00000014 03 0001 00000014 ff 0001 00"
                 "00800005 6000600060006000ec00 6000600060006000ec01 00"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
@@ -850,7 +855,7 @@ def test_valid_containers(
             ],
             skip_join_concurrent_sections_in_header=True,
             expected_bytecode=(
-                "ef00 01 01 0004 02 0001 000b 03 0001 0014 03 0001 0014 ff 0001 00"
+                "ef00 01 01 0004 02 0001 000b 03 0001 00000014 03 0001 00000014 ff 0001 00"
                 "00800004 6000600060006000ec00 00"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
                 "aa"
@@ -928,15 +933,15 @@ def test_valid_containers(
                 Section.Container(
                     Container(
                         sections=[
-                            Section.Code(code=Op.RETURNCONTRACT[0](0, 0)),
+                            Section.Code(code=Op.RETURNCODE[0](0, 0)),
                             Section.Container(container=Container.Code(code=Op.STOP)),
                         ],
                     )
                 ),
             ],
             auto_type_section=AutoSection.NONE,
-            expected_bytecode="ef0001 020001 0001 030001 0032 ff0000 00 fe"
-            "ef0001 010004 020001 0006 030001 0014 ff0000 00 00800002 60006000ee00"
+            expected_bytecode="ef0001 020001 0001 030001 00000034 ff0000 00 fe"
+            "ef0001 010004 020001 0006 030001 00000014 ff0000 00 00800002 60006000ee00"
             "ef0001 010004 020001 0001 ff0000 00 0080000000",
             validity_error=[EOFException.MISSING_TYPE_HEADER, EOFException.UNEXPECTED_HEADER_KIND],
         ),
@@ -1130,13 +1135,13 @@ def test_valid_containers(
             sections=[
                 Section.Code(
                     code=((Op.PUSH0 * (MAX_CODE_INPUTS + 1)) + Op.CALLF[1] + Op.STOP),
-                    max_stack_height=(MAX_CODE_INPUTS + 1),
+                    max_stack_increase=1,
                 ),
                 Section.Code(
                     code=(Op.POP * (MAX_CODE_INPUTS + 1)) + Op.RETF,
                     code_inputs=(MAX_CODE_INPUTS + 1),
                     code_outputs=0,
-                    max_stack_height=0,
+                    max_stack_increase=0,
                 ),
             ],
             validity_error=EOFException.INPUTS_OUTPUTS_NUM_ABOVE_LIMIT,
@@ -1146,13 +1151,13 @@ def test_valid_containers(
             sections=[
                 Section.Code(
                     code=Op.PUSH1(0) * 128 + Op.CALLF[1] + Op.STOP,
-                    max_stack_height=128,
+                    max_stack_increase=128,
                 ),
                 Section.Code(
                     Op.STOP,
                     code_inputs=128,
                     code_outputs=0,
-                    max_stack_height=128,
+                    max_stack_increase=0,
                 ),
             ],
             validity_error=EOFException.INPUTS_OUTPUTS_NUM_ABOVE_LIMIT,
@@ -1162,23 +1167,23 @@ def test_valid_containers(
             sections=[
                 Section.Code(
                     code=(Op.CALLF[1] + Op.STOP),
-                    max_stack_height=(MAX_CODE_OUTPUTS + 2),
+                    max_stack_increase=2,
                 ),
                 Section.Code(
                     code=(Op.PUSH0 * (MAX_CODE_OUTPUTS + 2)) + Op.RETF,
                     code_inputs=0,
                     code_outputs=(MAX_CODE_OUTPUTS + 2),
-                    max_stack_height=(MAX_CODE_OUTPUTS + 2),
+                    max_stack_increase=2,
                 ),
             ],
             validity_error=EOFException.INPUTS_OUTPUTS_NUM_ABOVE_LIMIT,
         ),
         Container(
-            name="single_code_section_max_stack_size_too_large",
+            name="single_code_section_max_stack_increase_too_large",
             sections=[
                 Section.Code(
                     code=Op.CALLER * 1024 + Op.POP * 1024 + Op.STOP,
-                    max_stack_height=1024,
+                    max_stack_increase=1024,
                 ),
             ],
             # TODO auto types section generation probably failed, the exception must be about code
@@ -1239,7 +1244,7 @@ def test_single_code_section(
     plus_container: bool,
 ):
     """Verify EOF container single code section."""
-    sections = [Section.Code(Op.RETURNCONTRACT[0](0, 0) if plus_container else Op.STOP)]
+    sections = [Section.Code(Op.RETURNCODE[0](0, 0) if plus_container else Op.STOP)]
     if plus_container:
         sections.append(
             Section.Container(
@@ -1273,7 +1278,7 @@ def test_max_code_sections(
     if plus_container:
         sections = [
             Section.Code(
-                Op.JUMPF[i + 1] if i < (MAX_CODE_SECTIONS - 1) else Op.RETURNCONTRACT[0](0, 0)
+                Op.JUMPF[i + 1] if i < (MAX_CODE_SECTIONS - 1) else Op.RETURNCODE[0](0, 0)
             )
             for i in range(MAX_CODE_SECTIONS)
         ]

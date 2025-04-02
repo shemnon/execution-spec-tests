@@ -25,7 +25,7 @@ def test_eof_example(eof_test: EOFTestFiller):
             Section.Code(
                 code=Op.CALLF[1](Op.PUSH0) + Op.STOP,  # bytecode to be deployed in the body
                 # Code: call section 1 with a single zero as input, then stop.
-                max_stack_height=1,  # define code header (in body) stack size
+                max_stack_increase=1,  # define code header (in body) stack size
             ),
             # There can be multiple code sections
             Section.Code(
@@ -33,20 +33,20 @@ def test_eof_example(eof_test: EOFTestFiller):
                 code=Op.POP + Op.CALLF[2]() + Op.POP + Op.RETF,
                 code_inputs=1,
                 code_outputs=0,
-                max_stack_height=1,
+                max_stack_increase=0,
             ),
             Section.Code(
                 # Call section 3 with two inputs (address twice), return
                 code=Op.CALLF[3](Op.DUP1, Op.ADDRESS) + Op.POP + Op.POP + Op.RETF,
                 code_outputs=1,
-                max_stack_height=3,
+                max_stack_increase=3,
             ),
             Section.Code(
                 # Duplicate one input and return
                 code=Op.DUP1 + Op.RETF,
                 code_inputs=2,
                 code_outputs=3,
-                max_stack_height=3,
+                max_stack_increase=1,
             ),
             # DATA section
             Section.Data("0xef"),
@@ -55,7 +55,7 @@ def test_eof_example(eof_test: EOFTestFiller):
 
     # This will construct a valid EOF container with these bytes
     assert bytes(eof_code) == bytes.fromhex(
-        "ef00010100100200040005000600080002ff000100008000010100000100010003020300035fe300010050"
+        "ef00010100100200040005000600080002ff000100008000010100000000010003020300015fe300010050"
         "e3000250e43080e300035050e480e4ef"
     )
 
@@ -86,7 +86,7 @@ def test_eof_example_custom_fields(eof_test: EOFTestFiller):
             Section.Code(
                 code=Op.PUSH1(2)
                 + Op.STOP,  # this is the actual bytecode to be deployed in the body
-                max_stack_height=1,  # define code header (in body) stack size
+                max_stack_increase=1,  # define code header (in body) stack size
             ),
             # DATA section
             Section.Data(
@@ -135,7 +135,7 @@ def test_eof_example_parameters(
         sections=[
             Section.Code(
                 code=code_section_code,
-                max_stack_height=1,
+                max_stack_increase=1,
             ),
             Section.Data(data_section_bytes),
         ],
