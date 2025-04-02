@@ -43,7 +43,7 @@ def test_dupn_all_valid_immediates(eof_state_test: EOFStateTestFiller):
 
 
 @pytest.mark.parametrize(
-    "stack_height,max_stack_height",
+    "stack_height,max_stack_increase",
     [
         [0, 0],
         [0, 1],
@@ -56,7 +56,7 @@ def test_dupn_all_valid_immediates(eof_state_test: EOFStateTestFiller):
 @pytest.mark.valid_from(EOF_FORK_NAME)
 def test_dupn_stack_underflow(
     stack_height: int,
-    max_stack_height: int,
+    max_stack_increase: int,
     eof_test: EOFTestFiller,
 ):
     """Test case out of bounds DUPN immediate."""
@@ -66,7 +66,7 @@ def test_dupn_stack_underflow(
                 code=sum(Op.PUSH2[v] for v in range(0, stack_height))
                 + Op.DUPN[stack_height]
                 + Op.STOP,
-                max_stack_height=max_stack_height,
+                max_stack_increase=max_stack_increase,
             )
         ],
     )
@@ -77,7 +77,7 @@ def test_dupn_stack_underflow(
 
 
 @pytest.mark.parametrize(
-    "dupn_operand,max_stack_height,expect_exception",
+    "dupn_operand,max_stack_increase,expect_exception",
     [
         [0, MAX_OPERAND_STACK_HEIGHT, EOFException.INVALID_MAX_STACK_HEIGHT],
         [0, MAX_OPERAND_STACK_HEIGHT + 1, EOFException.MAX_STACK_HEIGHT_ABOVE_LIMIT],
@@ -88,7 +88,7 @@ def test_dupn_stack_underflow(
 @pytest.mark.valid_from(EOF_FORK_NAME)
 def test_dupn_stack_overflow(
     dupn_operand: int,
-    max_stack_height: int,
+    max_stack_increase: int,
     expect_exception: EOFException,
     eof_test: EOFTestFiller,
 ):
@@ -99,7 +99,7 @@ def test_dupn_stack_overflow(
                 code=sum(Op.PUSH2[v] for v in range(0, MAX_OPERAND_STACK_HEIGHT))
                 + Op.DUPN[dupn_operand]
                 + Op.STOP,
-                max_stack_height=max_stack_height,
+                max_stack_increase=max_stack_increase,
             )
         ],
     )
