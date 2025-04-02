@@ -431,8 +431,8 @@
 - [ ] EOFCREATE is not a valid terminating instruction
 - [x] EOFCREATE immediate referring to non-existing container ([`tests/osaka/eip7692_eof_v1/eip7620_eof_create/test_eofcreate.py`](./eip7620_eof_create/test_eofcreate/index.md)`-k test_eofcreate_invalid_index`)
 - [x] EOFCREATE immediate referring to container with truncated data ([`tests/osaka/eip7692_eof_v1/eip7620_eof_create/test_eofcreate.py`](./eip7620_eof_create/test_eofcreate/index.md)`-k test_eofcreate_truncated_container`)
-- [x] Valid RETURNCONTRACTs referring to various container numbers ([`tests/osaka/eip7692_eof_v1/eip7620_eof_create/test_returncontract.py`](./eip7620_eof_create/test_returncontract/index.md)`-k test_returncontract_valid_index`)
-- [x] Truncated before RETURNCONTRACT immediate ([`tests/osaka/eip7692_eof_v1/eip7620_eof_create/test_returncontract.py::test_returncontract_invalid_truncated_immediate`](./eip7620_eof_create/test_returncontract/test_returncontract_invalid_truncated_immediate.md))
+- [x] Valid RETURNCODEs referring to various container numbers ([`tests/osaka/eip7692_eof_v1/eip7620_eof_create/test_returncode.py`](./eip7620_eof_create/test_returncode/index.md)`-k test_returncode_valid_index`)
+- [x] Truncated before RETURNCODE immediate ([`tests/osaka/eip7692_eof_v1/eip7620_eof_create/test_returncode.py::test_returncontract_invalid_truncated_immediate`](./eip7620_eof_create/test_returncontract/test_returncontract_invalid_truncated_immediate.md))
 - [x] RETURNCONTRACT immediate referring to non-existing container ([`tests/osaka/eip7692_eof_v1/eip7620_eof_create/test_returncontract.py`](./eip7620_eof_create/test_returncontract/index.md)`-k test_returncontract_invalid_index`)
 - [x] Unreachable code after RETURNCONTRACT, check that RETURNCONTRACT is terminating ([`tests/osaka/eip7692_eof_v1/eip7620_eof_create/test_returncontract.py::test_returncontract_terminating`](./eip7620_eof_create/test_returncontract/test_returncontract_terminating.md))
 

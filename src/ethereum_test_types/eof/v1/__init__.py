@@ -133,14 +133,14 @@ class Section(CopyValidateModel):
     Data stack items produced by or expected at the end of this code section
     (function)
     """
-    max_stack_height: int = 0
+    max_stack_increase: int = 0
     """
-    Maximum height data stack reaches during execution of code section.
+    Maximum extra stack that may be used in addition to input.
     """
-    auto_max_stack_height: bool = False
+    auto_max_stack_increase: bool = False
     """
     Whether to automatically compute the best suggestion for the
-    max_stack_height value for this code section.
+    max_stack_increase value for this code section.
     """
     auto_code_inputs_outputs: bool = False
     """
@@ -180,19 +180,19 @@ class Section(CopyValidateModel):
         if self.kind != SectionKind.CODE and not self.force_type_listing:
             return bytes()
 
-        code_inputs, code_outputs, max_stack_height = (
+        code_inputs, code_outputs, max_stack_increase = (
             self.code_inputs,
             self.code_outputs,
-            self.max_stack_height,
+            self.max_stack_increase,
         )
-        if self.auto_max_stack_height or self.auto_code_inputs_outputs:
+        if self.auto_max_stack_increase or self.auto_code_inputs_outputs:
             (
                 auto_code_inputs,
                 auto_code_outputs,
-                auto_max_height,
+                auto_max_increase,
             ) = compute_code_stack_values(self.data)
-            if self.auto_max_stack_height:
-                max_stack_height = auto_max_height
+            if self.auto_max_stack_increase:
+                max_stack_increase = auto_max_increase
             if self.auto_code_inputs_outputs:
                 code_inputs, code_outputs = (
                     auto_code_inputs,
@@ -202,19 +202,19 @@ class Section(CopyValidateModel):
         return (
             code_inputs.to_bytes(length=TYPES_INPUTS_BYTE_LENGTH, byteorder="big")
             + code_outputs.to_bytes(length=TYPES_OUTPUTS_BYTE_LENGTH, byteorder="big")
-            + max_stack_height.to_bytes(length=TYPES_STACK_BYTE_LENGTH, byteorder="big")
+            + max_stack_increase.to_bytes(length=TYPES_STACK_BYTE_LENGTH, byteorder="big")
         )
 
-    def with_max_stack_height(self, max_stack_height) -> "Section":
+    def with_max_stack_increase(self, max_stack_increase) -> "Section":
         """
-        Create copy of the section with `max_stack_height` set to the
+        Create copy of the section with `max_stack_increase` set to the
         specified value.
         """
-        return self.copy(max_stack_height=max_stack_height)
+        return self.copy(max_stack_increase=max_stack_increase)
 
-    def with_auto_max_stack_height(self) -> "Section":
-        """Create copy of the section with `auto_max_stack_height` set to True."""
-        return self.copy(auto_max_stack_height=True)
+    def with_auto_max_stack_increase(self) -> "Section":
+        """Create copy of the section with `auto_max_stack_increase` set to True."""
+        return self.copy(auto_max_stack_increase=True)
 
     def with_auto_code_inputs_outputs(self) -> "Section":
         """
@@ -264,8 +264,8 @@ class Section(CopyValidateModel):
         if code is None:
             code = Bytecode()
         kwargs.pop("kind", None)
-        if "max_stack_height" not in kwargs and isinstance(code, Bytecode):
-            kwargs["max_stack_height"] = code.max_stack_height
+        if "max_stack_increase" not in kwargs and isinstance(code, Bytecode):
+            kwargs["max_stack_increase"] = code.max_stack_height
         return cls(kind=SectionKind.CODE, data=code, **kwargs)
 
     @classmethod
@@ -455,7 +455,7 @@ class Container(CopyValidateModel):
         return cls(
             sections=[
                 Section.Code(
-                    code=initcode_prefix + Op.RETURNCONTRACT[0](0, 0),
+                    code=initcode_prefix + Op.RETURNCODE[0](0, 0),
                 ),
                 Section.Container(
                     container=deploy_container,
@@ -503,8 +503,8 @@ class Initcode(Bytecode):
         return Container(
             sections=[
                 Section.Code(
-                    code=Op.RETURNCONTRACT[0](0, 0),
-                    max_stack_height=2,
+                    code=Op.RETURNCODE[0](0, 0),
+                    max_stack_increase=2,
                 ),
                 Section.Container(
                     container=self.deploy_container,
@@ -520,7 +520,7 @@ class Initcode(Bytecode):
                 Section.Code(
                     # TODO: Pass calldata
                     code=Op.EOFCREATE[0](0, 0, 0, 0) + Op.STOP(),
-                    max_stack_height=4,
+                    max_stack_increase=4,
                 ),
                 Section.Container(
                     container=self.init_container,
