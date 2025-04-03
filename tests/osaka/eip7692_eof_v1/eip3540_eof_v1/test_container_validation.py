@@ -811,7 +811,7 @@ def test_valid_containers(
             ],
             auto_sort_sections=AutoSection.ONLY_BODY,
             expected_bytecode=(
-                "ef00 01 01 0004 02 0001 0015 03 0001 0014 ff 0001 03 0001 0014 00"
+                "ef00 01 01 0004 02 0001 0015 03 0001 00000014 ff 0001 03 0001 00000014 00"
                 "00800005 6000600060006000ec00 6000600060006000ec01 00"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
@@ -829,7 +829,7 @@ def test_valid_containers(
             ],
             skip_join_concurrent_sections_in_header=True,
             expected_bytecode=(
-                "ef00 01 01 0004 02 0001 0015 03 0001 0014 03 0001 0014 ff 0001 00"
+                "ef00 01 01 0004 02 0001 0015 03 0001 00000014 03 0001 00000014 ff 0001 00"
                 "00800005 6000600060006000ec00 6000600060006000ec01 00"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
@@ -850,7 +850,7 @@ def test_valid_containers(
             ],
             skip_join_concurrent_sections_in_header=True,
             expected_bytecode=(
-                "ef00 01 01 0004 02 0001 000b 03 0001 0014 03 0001 0014 ff 0001 00"
+                "ef00 01 01 0004 02 0001 000b 03 0001 00000014 03 0001 00000014 ff 0001 00"
                 "00800004 6000600060006000ec00 00"
                 "ef00 01 01 0004 02 0001 0001 ff 0000 00 00800000 fe"
                 "aa"
@@ -935,8 +935,8 @@ def test_valid_containers(
                 ),
             ],
             auto_type_section=AutoSection.NONE,
-            expected_bytecode="ef0001 020001 0001 030001 0032 ff0000 00 fe"
-            "ef0001 010004 020001 0006 030001 0014 ff0000 00 00800002 60006000ee00"
+            expected_bytecode="ef0001 020001 0001 030001 00000034 ff0000 00 fe"
+            "ef0001 010004 020001 0006 030001 00000014 ff0000 00 00800002 60006000ee00"
             "ef0001 010004 020001 0001 ff0000 00 0080000000",
             validity_error=[EOFException.MISSING_TYPE_HEADER, EOFException.UNEXPECTED_HEADER_KIND],
         ),
