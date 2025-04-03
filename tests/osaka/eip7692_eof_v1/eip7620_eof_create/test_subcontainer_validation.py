@@ -766,8 +766,8 @@ def test_wide_container(eof_test: EOFTestFiller, width: int, exception: EOFExcep
                     abort_sub_container,
                 ],
                 expected_bytecode="""
-                ef000101000402000100060300010014ff000000008000016000e0000000ef00010100040200010001ff
-                00000000800000fe""",
+                ef0001010004020001000603000100000014ff000000008000016000e0000000ef000101000402000100
+                01ff00000000800000fe""",
                 # Originally this test was "valid" because it was created
                 # before "orphan subcontainer" rule was introduced.
                 validity_error=EOFException.ORPHAN_SUBCONTAINER,
@@ -782,8 +782,8 @@ def test_wide_container(eof_test: EOFTestFiller, width: int, exception: EOFExcep
                     Section.Data(custom_size=2),
                 ],
                 expected_bytecode="""
-                ef000101000402000100060300010014ff000200008000016000e0000000ef00010100040200010001ff
-                00000000800000fe""",
+                ef0001010004020001000603000100000014ff000200008000016000e0000000ef000101000402000100
+                01ff00000000800000fe""",
                 # Originally this test was "valid" but against the current spec
                 # it contains two errors: data section truncated and orphan subcontainer.
                 validity_error=EOFException.TOPLEVEL_CONTAINER_TRUNCATED,
@@ -798,8 +798,8 @@ def test_wide_container(eof_test: EOFTestFiller, width: int, exception: EOFExcep
                     Section.Data("aabb"),
                 ],
                 expected_bytecode="""
-                ef000101000402000100060300010014ff000200008000016000e0000000ef00010100040200010001ff
-                00000000800000feaabb""",
+                ef0001010004020001000603000100000014ff000200008000016000e0000000ef000101000402000100
+                01ff00000000800000feaabb""",
                 # Originally this test was "valid" because it was created
                 # before "orphan subcontainer" rule was introduced.
                 validity_error=EOFException.ORPHAN_SUBCONTAINER,
