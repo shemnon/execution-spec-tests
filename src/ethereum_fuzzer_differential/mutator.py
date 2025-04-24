@@ -5,15 +5,15 @@ from abc import abstractmethod
 from typing import Any, Dict, Generic, List, Tuple, TypeVar
 
 from ethereum.exceptions import EthereumException
-from ethereum.prague.vm.eof.validation import ContainerContext, validate_eof_container
+from ethereum.osaka.vm.eof.validation import ContainerContext, validate_eof_container
 
 from ethereum_fuzzer_basicblocks.basicblocks import BasicBlockContainer
 from ethereum_test_base_types import Account, ZeroPaddedHexNumber
-from ethereum_test_fixtures.file import StateFixtures
-from ethereum_test_fixtures.state import Fixture as StateFixture
+from ethereum_test_fixtures.file import Fixtures
+from ethereum_test_fixtures.state import StateFixture
 from ethereum_test_fixtures.state import FixtureTransaction
 
-Mutatable = TypeVar("Mutatable", BasicBlockContainer, StateFixtures, Account)
+Mutatable = TypeVar("Mutatable", BasicBlockContainer, StateFixture, Account)
 
 
 class MutateError(Exception):
@@ -97,7 +97,7 @@ class AccountMutator(MutationStrategy[Account]):
         self.total_priority += mutator.priority
 
 
-class StateTestMutator(MutationStrategy[StateFixtures]):
+class StateTestMutator(MutationStrategy[Fixtures]):
     """Mutates a state test.  Currently, it only mutates EOF contracts."""
 
     contract_mutator: AccountMutator
@@ -109,7 +109,7 @@ class StateTestMutator(MutationStrategy[StateFixtures]):
         self.max_gas = max_gas
         self.contract_mutator = AccountMutator(eof_mutation_strategies)
 
-    def mutate(self, target: StateFixtures, context) -> Tuple[StateFixtures, str]:
+    def mutate(self, target: Fixtures, context) -> Tuple[Fixtures, str]:
         """
         For each account in the fixture, if it is an EOF contract mutate it.
 
@@ -133,15 +133,26 @@ class StateTestMutator(MutationStrategy[StateFixtures]):
         tx.gas_limit = [
             ZeroPaddedHexNumber(min(gas_limit, self.max_gas)) for gas_limit in tx.gas_limit
         ]
-        result = StateFixtures(
-            root={
-                test[0]: StateFixture(
-                    info=info,
-                    env=fixture.env,
-                    pre=pre,
-                    transaction=tx,
-                    post=fixture.post,
-                )
+        fixture = StateFixture(
+            env=fixture.env,
+            pre=pre,
+            transaction=tx,
+            post=fixture.post,
+            config=fixture.config,
+        )
+        fixture.fill_info(
+            "mutate fillied", # t8n_version=# info["filling-transition-tool"],
+            "//FIXME", # test_case_description=info["description"],
+            "http://example.net", # fixture_source_url=info["url"],
+            None,
+            _info_metadata={
+                "comment": "diff_fuzz mutated test",
+                "mutations": "//FIXME", #info.mutations,
+            }
+        )
+        result = Fixtures(
+            {
+                test[0]:fixture
             }
         )
         return result, "\n".join(mutation_log)

@@ -12,11 +12,11 @@ from typing import Dict, List
 from ethereum_clis.file_utils import write_json_file
 from ethereum_fuzzer_differential.mutator import MutateError, StateTestMutator
 from ethereum_fuzzer_differential.strategies.defaults import default_strategies
-from ethereum_test_fixtures.file import Fixtures, StateFixtures
-from ethereum_test_fixtures.state import Fixture as StateFixture
+from ethereum_test_fixtures.file import Fixtures
+from ethereum_test_fixtures.state import StateFixture
 
 
-def build_state_fixtures_context(state: StateFixtures):
+def build_state_fixtures_context(state: Fixtures):
     """Extract all the addresses into a context map."""
     test = next(iter(state.items()))
     fixture = test[1]
@@ -29,7 +29,7 @@ def build_state_fixtures_context(state: StateFixtures):
 class DifferentialFuzzer:
     """Holds the execution state and logic of the differential fuzzer."""
 
-    corpus: List[StateFixtures]
+    corpus: List[Fixtures]
     work_dir: str
     cleanup_tests: bool
     steps: range
@@ -41,7 +41,7 @@ class DifferentialFuzzer:
 
     def __init__(
         self,
-        corpus: List[StateFixtures],
+        corpus: List[Fixtures],
         work_dir: str,
         cleanup_tests: bool,
         runtest_binary: str,
@@ -166,18 +166,26 @@ def build_corpus(corpus_dir: str):
     for subdir, _, files in os.walk(corpus_dir):
         for file in files:
             try:
-                state_tests = Fixtures.from_file(
-                    Path(os.path.join(subdir, file)), fixture_format=StateFixture
-                )
+                state_tests: Fixtures = Fixtures.model_validate_json(
+                    Path(os.path.join(subdir, file)).read_text())
+                state_test : StateFixture
                 for _, state_test in state_tests.root.items():
                     # re-write info
+                    old_info = state_test.info
                     state_test.info = {
                         "comment": "diff_fuzz corpus file",
                         "source": str(file),
                         "mutations": "",
+                        "filling-transition-tool": "diff_fuzz mutator",
+                        "description": old_info["description"],
+                        "url":old_info["url"],
+                        "fixture-format": old_info["fixture-format"],
+                        "reference-spec": old_info["reference-spec"],
+                        "reference-spec-version": old_info["reference-spec-version"],
                     }
                 corpus.append(state_tests)
             except ValueError:
                 # Only mask value errors such as json errors and state test format errors
                 continue
+    print("Corpus built.")
     return corpus

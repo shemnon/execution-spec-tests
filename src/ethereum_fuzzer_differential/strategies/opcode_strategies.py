@@ -195,7 +195,7 @@ eof_insertion_opcodes = list(
         Op.SWAPN,
         Op.EXCHANGE,
         Op.EOFCREATE,
-        Op.RETURNCONTRACT,
+        Op.RETURNCODE,
         Op.RETURN,
         Op.EXTCALL,
         Op.EXTDELEGATECALL,

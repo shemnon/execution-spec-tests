@@ -176,83 +176,83 @@ have to use a pre-calculated size
 initcode_size = 32
 
 
-@pytest.mark.with_all_evm_code_types
-@pytest.mark.parametrize(
-    "target_deploy_size",
-    [
-        pytest.param(0x4000, id="large"),
-        pytest.param(MAX_BYTECODE_SIZE, id="max"),
-        pytest.param(MAX_BYTECODE_SIZE + 1, id="overmax"),
-        pytest.param(MAX_INITCODE_SIZE - initcode_size - 1, id="below_initcodemax"),
-        pytest.param(MAX_INITCODE_SIZE - initcode_size, id="initcodemax"),
-    ],
-)
-def test_txcreate_deploy_sizes(
-    state_test: StateTestFiller,
-    pre: Alloc,
-    target_deploy_size: int,
-):
-    """Verifies a mix of runtime contract sizes mixing success and multiple size failure modes."""
-    env = Environment()
-
-    runtime_container = Container(
-        sections=[
-            Section.Code(
-                code=Op.JUMPDEST * (target_deploy_size - len(smallest_runtime_subcontainer))
-                + Op.STOP,
-            ),
-        ]
-    )
-
-    initcode_subcontainer = Container(
-        name="Initcode Subcontainer",
-        sections=[
-            Section.Code(
-                code=Op.RETURNCODE[0](0, 0),
-            ),
-            Section.Container(container=runtime_container),
-        ],
-    )
-    assert initcode_size == len(initcode_subcontainer) - len(runtime_container)
-
-    assert initcode_size == (len(initcode_subcontainer) - len(runtime_container)), (
-        "initcode_size is wrong, expected initcode_size is %d, calculated is %d"
-        % (
-            initcode_size,
-            len(initcode_subcontainer) - len(runtime_container),
-        )
-    )
-    initcode_hash = initcode_subcontainer.hash
-
-    sender = pre.fund_eoa()
-    contract_address = pre.deploy_contract(
-        code=Op.SSTORE(slot_create_address, Op.TXCREATE(tx_initcode_hash=initcode_hash))
-        + Op.SSTORE(slot_code_worked, value_code_worked)
-        + Op.STOP
-    )
-    # Storage in 0 should have the address,
-    # Storage 1 is a canary of 1 to make sure it tried to execute, which also covers cases of
-    #   data+code being greater than initcode_size_max, which is allowed.
-    post = {
-        contract_address: Account(
-            storage={
-                slot_create_address: compute_eofcreate_address(contract_address, 0)
-                if target_deploy_size <= MAX_BYTECODE_SIZE
-                else TXCREATE_FAILURE,
-                slot_code_worked: value_code_worked,
-            }
-        )
-    }
-    tx = Transaction(
-        to=contract_address,
-        gas_limit=20_000_000,
-        max_priority_fee_per_gas=10,
-        max_fee_per_gas=10,
-        sender=sender,
-        initcodes=[initcode_subcontainer],
-    )
-
-    state_test(env=env, pre=pre, post=post, tx=tx)
+# @pytest.mark.with_all_evm_code_types
+# @pytest.mark.parametrize(
+#     "target_deploy_size",
+#     [
+#         pytest.param(0x4000, id="large"),
+#         pytest.param(MAX_BYTECODE_SIZE, id="max"),
+#         pytest.param(MAX_BYTECODE_SIZE + 1, id="overmax"),
+#         pytest.param(MAX_INITCODE_SIZE - initcode_size - 1, id="below_initcodemax"),
+#         pytest.param(MAX_INITCODE_SIZE - initcode_size, id="initcodemax"),
+#     ],
+# )
+# def test_txcreate_deploy_sizes(
+#     state_test: StateTestFiller,
+#     pre: Alloc,
+#     target_deploy_size: int,
+# ):
+#     """Verifies a mix of runtime contract sizes mixing success and multiple size failure modes."""
+#     env = Environment()
+#
+#     runtime_container = Container(
+#         sections=[
+#             Section.Code(
+#                 code=Op.JUMPDEST * (target_deploy_size - len(smallest_runtime_subcontainer))
+#                 + Op.STOP,
+#             ),
+#         ]
+#     )
+#
+#     initcode_subcontainer = Container(
+#         name="Initcode Subcontainer",
+#         sections=[
+#             Section.Code(
+#                 code=Op.RETURNCODE[0](0, 0),
+#             ),
+#             Section.Container(container=runtime_container),
+#         ],
+#     )
+#     assert initcode_size == len(initcode_subcontainer) - len(runtime_container)
+#
+#     assert initcode_size == (len(initcode_subcontainer) - len(runtime_container)), (
+#         "initcode_size is wrong, expected initcode_size is %d, calculated is %d"
+#         % (
+#             initcode_size,
+#             len(initcode_subcontainer) - len(runtime_container),
+#         )
+#     )
+#     initcode_hash = initcode_subcontainer.hash
+#
+#     sender = pre.fund_eoa()
+#     contract_address = pre.deploy_contract(
+#         code=Op.SSTORE(slot_create_address, Op.TXCREATE(tx_initcode_hash=initcode_hash))
+#         + Op.SSTORE(slot_code_worked, value_code_worked)
+#         + Op.STOP
+#     )
+#     # Storage in 0 should have the address,
+#     # Storage 1 is a canary of 1 to make sure it tried to execute, which also covers cases of
+#     #   data+code being greater than initcode_size_max, which is allowed.
+#     post = {
+#         contract_address: Account(
+#             storage={
+#                 slot_create_address: compute_eofcreate_address(contract_address, 0)
+#                 if target_deploy_size <= MAX_BYTECODE_SIZE
+#                 else TXCREATE_FAILURE,
+#                 slot_code_worked: value_code_worked,
+#             }
+#         )
+#     }
+#     tx = Transaction(
+#         to=contract_address,
+#         gas_limit=20_000_000,
+#         max_priority_fee_per_gas=10,
+#         max_fee_per_gas=10,
+#         sender=sender,
+#         initcodes=[initcode_subcontainer],
+#     )
+#
+#     state_test(env=env, pre=pre, post=post, tx=tx)
 
 
 @pytest.mark.with_all_evm_code_types

@@ -396,6 +396,11 @@ def short_at(b: bytes, index: int) -> int:
     return int.from_bytes(b[index : index + 2], byteorder="big")
 
 
+def uint_at(b: bytes, index: int) -> int:
+    """Read a 4 byte unsigned value."""
+    return int.from_bytes(b[index : index + 4], byteorder="big")
+
+
 def read_header(b: bytes, index: int) -> Tuple[int, int, int]:
     """Read a 3 byte EOF header."""
     return (b[index], short_at(b, index + 1), index + 3)
@@ -408,6 +413,16 @@ def read_multi_header(b: bytes, index: int) -> Tuple[int, list[int], int]:
         b[index],
         [short_at(b, index + 3 + x * 2) for x in range(length)],
         index + 3 + length * 2,
+    )
+
+
+def read_large_multi_header(b: bytes, index: int) -> Tuple[int, list[int], int]:
+    """Read a list-form EOF header."""
+    length = short_at(b, index + 1)
+    return (
+        b[index],
+        [uint_at(b, index + 3 + x * 4) for x in range(length)],
+        index + 3 + length * 4,
     )
 
 
@@ -441,22 +456,25 @@ class BasicBlockContainer(AbstractContainer):
         If a container was held in this object,it will be completely overwriten.
         """
         if not data.startswith(b"\xef\0\x01\x01"):
+            print(data.hex())
             raise InvalidEOFCodeError("Bad magic bytes")
 
         (header, types_sizes, index) = read_header(data, 3)
         if header != 1:
             raise InvalidEOFCodeError("expected section 1")
+
         (header, section_sizes, index) = read_multi_header(data, index)
         if header != 2:
             raise InvalidEOFCodeError("expected section 2")
+
         if data[index] == 3:
-            (header, container_sizes, index) = read_multi_header(data, index)
+            (header, container_sizes, index) = read_large_multi_header(data, index)
         else:
             container_sizes = []
-            header = 3
+
         (header, data_size, index) = read_header(data, index)
-        if header != 4:
-            raise InvalidEOFCodeError("expected section 4")
+        if header != 0xff:
+            raise InvalidEOFCodeError("expected section 0xff")
 
         if data[index] != 0:
             raise InvalidEOFCodeError("expected section terminator")
@@ -501,9 +519,9 @@ class BasicBlockContainer(AbstractContainer):
         if len(containers) > 0:
             result += b"\x03" + (len(containers)).to_bytes(2, byteorder="big")
             for container in containers:
-                result += len(container).to_bytes(2, byteorder="big")
+                result += len(container).to_bytes(4, byteorder="big")
 
-        result += b"\x04" + self.data_length.to_bytes(2, byteorder="big")
+        result += b"\xff" + self.data_length.to_bytes(2, byteorder="big")
 
         result += b"\0"
 
