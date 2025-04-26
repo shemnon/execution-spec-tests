@@ -141,13 +141,13 @@ class StateTestMutator(MutationStrategy[Fixtures]):
             config=fixture.config,
         )
         fixture.fill_info(
-            "mutate fillied", # t8n_version=# info["filling-transition-tool"],
-            "//FIXME", # test_case_description=info["description"],
-            "http://example.net", # fixture_source_url=info["url"],
-            None,
+            t8n_version=info["filling-transition-tool"],
+            test_case_description=info["description"],
+            fixture_source_url=info["url"],
+            ref_spec=None,
             _info_metadata={
                 "comment": "diff_fuzz mutated test",
-                "mutations": "//FIXME", #info.mutations,
+                "mutations": "", #info.mutations,
             }
         )
         result = Fixtures(

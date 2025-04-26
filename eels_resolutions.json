@@ -42,6 +42,6 @@
     "Osaka": {
         "git_url": "https://github.com/shemnon/execution-specs.git",
         "branch": "shemnon/eof-devnet-1",
-        "commit": "9891e3c22a3600c1c3d4667bf2805c72eb3c7e84"
+        "commit": "cd2e854b8088693db14f6e61177b8a0bde5ce9b0"
     }
 }
